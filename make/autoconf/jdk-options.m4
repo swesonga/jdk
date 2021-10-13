@@ -819,6 +819,9 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_HSDIS],
   AC_ARG_WITH([binutils-src], [AS_HELP_STRING([--with-binutils-src],
       [where to find the binutils source for building])])
 
+  AC_ARG_WITH([llvm], [AS_HELP_STRING([--with-llvm],
+      [where to find the llvm])])
+
   AC_MSG_CHECKING([what hsdis backend to use])
 
   if test "x$with_hsdis" = xyes; then
@@ -891,8 +894,12 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_HSDIS],
   elif test "x$with_hsdis" = xllvm; then
     HSDIS_BACKEND=llvm
     AC_MSG_RESULT(['llvm'])
+    HSDIS_LLVM_CONFIG_EXTRA_PATH=""
+    if ! test "x$with_llvm" = x; then
+      HSDIS_LLVM_CONFIG_EXTRA_PATH=":$with_llvm/bin"
+    fi
     # Macs with homebrew has llvm in /usr/local/opt
-    UTIL_LOOKUP_PROGS(LLVM_CONFIG, llvm-config, [$PATH:/usr/local/opt/llvm/bin])
+    UTIL_LOOKUP_PROGS(LLVM_CONFIG, llvm-config, [$PATH:/usr/local/opt/llvm/bin$HSDIS_LLVM_CONFIG_EXTRA_PATH])
     if test "x$LLVM_CONFIG" = x; then
       AC_MSG_NOTICE([Cannot locate llvm-config which is needed for hsdis/llvm. Try using LLVM_CONFIG=<path>.])
       AC_MSG_ERROR([Cannot continue])
@@ -901,6 +908,36 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_HSDIS],
     HSDIS_CFLAGS=`$LLVM_CONFIG --cflags`
     HSDIS_LDFLAGS=`$LLVM_CONFIG --ldflags`
     HSDIS_LIBS=`$LLVM_CONFIG --libs $OPENJDK_TARGET_CPU_ARCH ${OPENJDK_TARGET_CPU_ARCH}disassembler`
+
+    if test "x$OPENJDK_TARGET_OS" = "xwindows"; then
+      # Output of llvm-config is not really usable on Windows, fix it up here
+      if ! test "x$with_llvm" = x; then
+        HSDIS_LLVM_ROOT="$with_llvm"
+        UTIL_FIXUP_PATH(HSDIS_LLVM_ROOT)
+
+        HSDIS_CFLAGS_OLD="$HSDIS_CFLAGS"
+        HSDIS_CFLAGS="-I$HSDIS_LLVM_ROOT/include"
+
+        # Filter -I flags from the CFLAGS, since they point to the wrong directory
+        for HSDIS_CFLAG in $HSDIS_CFLAGS_OLD; do
+          if ! [[ $HSDIS_CFLAG == "-I"* ]]; then
+            HSDIS_CFLAGS="$HSDIS_CFLAGS $HSDIS_CFLAG"
+          fi
+        done
+
+        HSDIS_LDFLAGS="-libpath:$HSDIS_LLVM_ROOT/lib"
+        HSDIS_LIBS_OLD="$HSDIS_LIBS"
+        HSDIS_LIBS=""
+        for HSDIS_LIB in $HSDIS_LIBS_OLD; do
+          # Drop everything but the filename
+          UTIL_FIXUP_PATH(HSDIS_LIB)
+          HSDIS_LIB=`$BASENAME $HSDIS_LIB`
+          HSDIS_LIBS="$HSDIS_LIBS $HSDIS_LIB"
+        done
+      else 
+        AC_MSG_ERROR([Need to specify --with-llvm=/path/to/llvm on Windows])
+      fi
+    fi
   else
     AC_MSG_RESULT([invalid])
     AC_MSG_ERROR([Incorrect hsdis backend "$with_hsdis"])
