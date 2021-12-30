@@ -60,7 +60,7 @@ int MachOper::index_position() const { return -1; }  // no index input
 // Check for PC-Relative displacement
 relocInfo::relocType MachOper::disp_reloc() const { return relocInfo::none; }
 // Return the label
-Label*   MachOper::label()  const { ShouldNotReachHere(); return 0; }
+const Label&   MachOper::label()  const { ShouldNotReachHere(); return MachOper::EmptyLabel; }
 intptr_t MachOper::method() const { ShouldNotReachHere(); return 0; }
 
 
@@ -110,7 +110,7 @@ uint labelOper::hash() const {
 //------------------------------cmp--------------------------------------------
 // Print any per-operand special info
 bool labelOper::cmp( const MachOper &oper ) const {
-  return (opcode() == oper.opcode()) && (_label == oper.label());
+  return (opcode() == oper.opcode()) && (*_label == oper.label());
 }
 
 //------------------------------hash-------------------------------------------
@@ -123,6 +123,16 @@ uint methodOper::hash() const {
 // Print any per-operand special info
 bool methodOper::cmp( const MachOper &oper ) const {
   return (opcode() == oper.opcode()) && (_method == oper.method());
+}
+
+bool labelOper::operator==(const labelOper& other)
+{
+  return this->_label == other._label;
+}
+
+bool labelOper::operator==(labelOper& other)
+{
+  return this->_label == other._label;
 }
 
 

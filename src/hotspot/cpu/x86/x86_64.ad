@@ -12548,8 +12548,8 @@ instruct jmpDir(label labl)
   format %{ "jmp     $labl" %}
   size(5);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jmp(*L, false); // Always long jump
+    Label L = $labl$$label;
+    __ jmp(L, false); // Always long jump
   %}
   ins_pipe(pipe_jmp);
 %}
@@ -12564,8 +12564,8 @@ instruct jmpCon(cmpOp cop, rFlagsReg cr, label labl)
   format %{ "j$cop     $labl" %}
   size(6);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+    Label L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), L, false); // Always long jump
   %}
   ins_pipe(pipe_jcc);
 %}
@@ -12581,8 +12581,8 @@ instruct jmpLoopEnd(cmpOp cop, rFlagsReg cr, label labl)
   format %{ "j$cop     $labl\t# loop end" %}
   size(6);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+    Label L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), L, false); // Always long jump
   %}
   ins_pipe(pipe_jcc);
 %}
@@ -12597,8 +12597,8 @@ instruct jmpLoopEndU(cmpOpU cop, rFlagsRegU cmp, label labl) %{
   format %{ "j$cop,u   $labl\t# loop end" %}
   size(6);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+    Label L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), L, false); // Always long jump
   %}
   ins_pipe(pipe_jcc);
 %}
@@ -12612,8 +12612,8 @@ instruct jmpLoopEndUCF(cmpOpUCF cop, rFlagsRegUCF cmp, label labl) %{
   format %{ "j$cop,u   $labl\t# loop end" %}
   size(6);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+    Label L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), L, false); // Always long jump
   %}
   ins_pipe(pipe_jcc);
 %}
@@ -12633,8 +12633,8 @@ instruct jmpLoopEnd_and_restoreMask(cmpOp cop, kReg_K1 ktmp, rFlagsReg cr, label
             "restorevectmask \t# vector mask restore for loops" %}
   size(10);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+    Label L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), L, false); // Always long jump
     __ restorevectmask($ktmp$$KRegister);
   %}
   ins_pipe(pipe_jcc);
@@ -12653,8 +12653,8 @@ instruct jmpLoopEndU_and_restoreMask(cmpOpU cop, kReg_K1 ktmp, rFlagsRegU cmp, l
             "restorevectmask \t# vector mask restore for loops" %}
   size(10);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+    Label L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), L, false); // Always long jump
     __ restorevectmask($ktmp$$KRegister);
   %}
   ins_pipe(pipe_jcc);
@@ -12672,8 +12672,8 @@ instruct jmpLoopEndUCF_and_restoreMask(cmpOpUCF cop, kReg_K1 ktmp, rFlagsRegUCF 
             "restorevectmask \t# vector mask restore for loops" %}
   size(10);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+    Label L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), L, false); // Always long jump
     __ restorevectmask($ktmp$$KRegister);
   %}
   ins_pipe(pipe_jcc);
@@ -12688,8 +12688,8 @@ instruct jmpConU(cmpOpU cop, rFlagsRegU cmp, label labl) %{
   format %{ "j$cop,u   $labl" %}
   size(6);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+    Label L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), L, false); // Always long jump
   %}
   ins_pipe(pipe_jcc);
 %}
@@ -12702,8 +12702,8 @@ instruct jmpConUCF(cmpOpUCF cop, rFlagsRegUCF cmp, label labl) %{
   format %{ "j$cop,u   $labl" %}
   size(6);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+    Label L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), L, false); // Always long jump
   %}
   ins_pipe(pipe_jcc);
 %}
@@ -12724,14 +12724,14 @@ instruct jmpConUCF2(cmpOpUCF2 cop, rFlagsRegUCF cmp, label labl) %{
     }
   %}
   ins_encode %{
-    Label* l = $labl$$label;
+    Label l = $labl$$label;
     if ($cop$$cmpcode == Assembler::notEqual) {
-      __ jcc(Assembler::parity, *l, false);
-      __ jcc(Assembler::notEqual, *l, false);
+      __ jcc(Assembler::parity, l, false);
+      __ jcc(Assembler::notEqual, l, false);
     } else if ($cop$$cmpcode == Assembler::equal) {
       Label done;
       __ jccb(Assembler::parity, done);
-      __ jcc(Assembler::equal, *l, false);
+      __ jcc(Assembler::equal, l, false);
       __ bind(done);
     } else {
        ShouldNotReachHere();
@@ -12812,8 +12812,8 @@ instruct jmpDir_short(label labl) %{
   format %{ "jmp,s   $labl" %}
   size(2);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jmpb(*L);
+    Label L = $labl$$label;
+    __ jmpb(L);
   %}
   ins_pipe(pipe_jmp);
   ins_short_branch(1);
@@ -12828,8 +12828,8 @@ instruct jmpCon_short(cmpOp cop, rFlagsReg cr, label labl) %{
   format %{ "j$cop,s   $labl" %}
   size(2);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+    Label L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), L);
   %}
   ins_pipe(pipe_jcc);
   ins_short_branch(1);
@@ -12844,8 +12844,8 @@ instruct jmpLoopEnd_short(cmpOp cop, rFlagsReg cr, label labl) %{
   format %{ "j$cop,s   $labl\t# loop end" %}
   size(2);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+    Label L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), L);
   %}
   ins_pipe(pipe_jcc);
   ins_short_branch(1);
@@ -12860,8 +12860,8 @@ instruct jmpLoopEndU_short(cmpOpU cop, rFlagsRegU cmp, label labl) %{
   format %{ "j$cop,us  $labl\t# loop end" %}
   size(2);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+    Label L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), L);
   %}
   ins_pipe(pipe_jcc);
   ins_short_branch(1);
@@ -12875,8 +12875,8 @@ instruct jmpLoopEndUCF_short(cmpOpUCF cop, rFlagsRegUCF cmp, label labl) %{
   format %{ "j$cop,us  $labl\t# loop end" %}
   size(2);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+    Label L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), L);
   %}
   ins_pipe(pipe_jcc);
   ins_short_branch(1);
@@ -12891,8 +12891,8 @@ instruct jmpConU_short(cmpOpU cop, rFlagsRegU cmp, label labl) %{
   format %{ "j$cop,us  $labl" %}
   size(2);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+    Label L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), L);
   %}
   ins_pipe(pipe_jcc);
   ins_short_branch(1);
@@ -12906,8 +12906,8 @@ instruct jmpConUCF_short(cmpOpUCF cop, rFlagsRegUCF cmp, label labl) %{
   format %{ "j$cop,us  $labl" %}
   size(2);
   ins_encode %{
-    Label* L = $labl$$label;
-    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+    Label L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), L);
   %}
   ins_pipe(pipe_jcc);
   ins_short_branch(1);
@@ -12930,14 +12930,14 @@ instruct jmpConUCF2_short(cmpOpUCF2 cop, rFlagsRegUCF cmp, label labl) %{
   %}
   size(4);
   ins_encode %{
-    Label* l = $labl$$label;
+    Label l = $labl$$label;
     if ($cop$$cmpcode == Assembler::notEqual) {
-      __ jccb(Assembler::parity, *l);
-      __ jccb(Assembler::notEqual, *l);
+      __ jccb(Assembler::parity, l);
+      __ jccb(Assembler::notEqual, l);
     } else if ($cop$$cmpcode == Assembler::equal) {
       Label done;
       __ jccb(Assembler::parity, done);
-      __ jccb(Assembler::equal, *l);
+      __ jccb(Assembler::equal, l);
       __ bind(done);
     } else {
        ShouldNotReachHere();

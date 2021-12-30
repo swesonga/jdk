@@ -60,6 +60,9 @@ class State;
 
 //---------------------------MachOper------------------------------------------
 class MachOper : public ResourceObj {
+private:
+  static const Label& EmptyLabel;
+
 public:
   // Allocate right next to the MachNodes in the same arena
   void *operator new(size_t x) throw() {
@@ -162,7 +165,7 @@ public:
   virtual const TypePtr *disp_as_type() const { return NULL; }
 
   // Return the label
-  virtual Label *label() const;
+  virtual const Label &label() const;
 
   // Return the method's address
   virtual intptr_t  method() const;
@@ -1099,19 +1102,22 @@ private:
   virtual uint           num_edges() const { return 0; }
 public:
   // Supported for fixed size branches
-  Label* _label;                // Label for branch(es)
+  const Label* _label;                // Label for branch(es)
 
   uint _block_num;
 
   labelOper() : _label(0), _block_num(0) {}
 
-  labelOper(Label* label, uint block_num) : _label(label), _block_num(block_num) {}
+  labelOper(const Label* label, uint block_num) : _label(label), _block_num(block_num) {}
 
   labelOper(labelOper* l) : _label(l->_label) , _block_num(l->_block_num) {}
 
+  bool operator==(const labelOper& left);
+  bool operator==(labelOper left);
+
   virtual MachOper *clone() const;
 
-  virtual Label *label() const { assert(_label != NULL, "need Label"); return _label; }
+  virtual const Label &label() const { assert(_label != NULL, "need Label"); return *_label; }
 
   virtual uint           opcode() const;
 
