@@ -5888,7 +5888,9 @@ void MacroAssembler::float_move(VMRegPair src, VMRegPair dst, Register tmp) {
   } else if (src.first() != dst.first()) {
     if (src.is_single_phys_reg() && dst.is_single_phys_reg())
       fmovs(dst.first()->as_FloatRegister(), src.first()->as_FloatRegister());
-    else
+    else if (dst.first()->is_reg()) {
+      fmovs(dst.first()->as_Register(), src.first()->as_FloatRegister());
+    } else
       strs(src.first()->as_FloatRegister(), Address(sp, reg2offset_out(dst.first())));
   }
 }
@@ -5927,8 +5929,17 @@ void MacroAssembler::double_move(VMRegPair src, VMRegPair dst, Register tmp) {
       ldrd(dst.first()->as_FloatRegister(), Address(rfp, reg2offset_in(src.first())));
     }
   } else if (src.first() != dst.first()) {
-    if (src.is_single_phys_reg() && dst.is_single_phys_reg())
-      fmovd(dst.first()->as_FloatRegister(), src.first()->as_FloatRegister());
+    if (src.is_single_phys_reg() && dst.is_single_phys_reg()) {
+        if (src.first()->is_FloatRegister()) {
+          if (dst.first()->is_FloatRegister()) {
+            fmovd(dst.first()->as_FloatRegister(), src.first()->as_FloatRegister());
+          } else {
+            fmovd(dst.first()->as_Register(), src.first()->as_FloatRegister());
+          }
+        } else {
+          fmovd(dst.first()->as_FloatRegister(), src.first()->as_Register());
+        }
+    }
     else
       strd(src.first()->as_FloatRegister(), Address(sp, reg2offset_out(dst.first())));
   }
