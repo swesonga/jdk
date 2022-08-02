@@ -26,17 +26,18 @@
  */
 package jdk.internal.foreign.abi.aarch64.windows;
 
-import jdk.incubator.foreign.Addressable;
-import jdk.incubator.foreign.FunctionDescriptor;
-import jdk.incubator.foreign.MemoryAddress;
-import jdk.incubator.foreign.MemoryLayout;
-import jdk.incubator.foreign.MemorySegment;
-import jdk.incubator.foreign.ResourceScope;
-import jdk.internal.foreign.AbstractCLinker;
-import jdk.internal.foreign.ResourceScopeImpl;
+import java.lang.foreign.Addressable;
+import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.MemoryAddress;
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.MemorySession;
+import java.lang.foreign.VaList;
+import jdk.internal.foreign.abi.AbstractLinker;
 import jdk.internal.foreign.abi.SharedUtils;
 import jdk.internal.foreign.abi.UpcallStubs;
 import jdk.internal.foreign.abi.aarch64.CallArranger;
+import jdk.internal.foreign.MemorySessionImpl;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -50,11 +51,12 @@ import static jdk.internal.foreign.PlatformLayouts.*;
  * ABI implementation for Windows/AArch64. Based on AAPCS with
  * changes to va_list.
  */
-public final class WindowsAArch64Linker extends AbstractCLinker {
+public final class WindowsAArch64Linker extends AbstractLinker {
     private static WindowsAArch64Linker instance;
 
     static final long ADDRESS_SIZE = 64; // bits
 
+    /* TODO: Is this code still necessary?
     private static final MethodHandle MH_unboxVaList;
     private static final MethodHandle MH_boxVaList;
 
@@ -64,11 +66,12 @@ public final class WindowsAArch64Linker extends AbstractCLinker {
             MH_unboxVaList = lookup.findVirtual(VaList.class, "address",
                 MethodType.methodType(MemoryAddress.class));
             MH_boxVaList = MethodHandles.insertArguments(lookup.findStatic(WindowsAArch64Linker.class, "newVaListOfAddress",
-                MethodType.methodType(VaList.class, MemoryAddress.class, ResourceScope.class)), 1, ResourceScope.globalScope());
+                MethodType.methodType(VaList.class, MemoryAddress.class, MemorySession.class)), 1, MemorySession.globalScope());
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
         }
     }
+     */
 
     public static WindowsAArch64Linker getInstance() {
         if (instance == null) {
@@ -78,36 +81,23 @@ public final class WindowsAArch64Linker extends AbstractCLinker {
     }
 
     @Override
-    public final MethodHandle downcallHandle(MethodType type, FunctionDescriptor function) {
-        Objects.requireNonNull(type);
-        Objects.requireNonNull(function);
-        MethodType llMt = SharedUtils.convertVaListCarriers(type, WindowsAArch64VaList.CARRIER);
-        MethodHandle handle = CallArranger.arrangeDowncall(llMt, function);
-        if (!type.returnType().equals(MemorySegment.class)) {
-            // not returning segment, just insert a throwing allocator
-            handle = MethodHandles.insertArguments(handle, 1, SharedUtils.THROWING_ALLOCATOR);
-        }
-        handle = SharedUtils.unboxVaLists(type, handle, MH_unboxVaList);
-        return handle;
+    protected MethodHandle arrangeDowncall(MethodType inferredMethodType, FunctionDescriptor function) {
+        return CallArranger.WINDOWS.arrangeDowncall(inferredMethodType, function);
     }
 
     @Override
-    public final MemoryAddress upcallStub(MethodHandle target, FunctionDescriptor function, ResourceScope scope) {
-        Objects.requireNonNull(scope);
-        Objects.requireNonNull(target);
-        Objects.requireNonNull(function);
-        target = SharedUtils.boxVaLists(target, MH_boxVaList);
-        return UpcallStubs.upcallAddress(CallArranger.arrangeUpcall(target, target.type(), function), (ResourceScopeImpl) scope);
+    protected MemorySegment arrangeUpcall(MethodHandle target, MethodType targetType, FunctionDescriptor function, MemorySession scope) {
+        return CallArranger.WINDOWS.arrangeUpcall(target, targetType, function, scope);
     }
 
-    public static VaList newVaList(Consumer<VaList.Builder> actions, ResourceScope scope) {
-        WindowsAArch64VaList.Builder builder = WindowsAArch64VaList.builder(scope);
+    public static VaList newVaList(Consumer<VaList.Builder> actions, MemorySession session) {
+        WindowsAArch64VaList.Builder builder = WindowsAArch64VaList.builder(session);
         actions.accept(builder);
         return builder.build();
     }
 
-    public static VaList newVaListOfAddress(MemoryAddress ma, ResourceScope scope) {
-        return WindowsAArch64VaList.ofAddress(ma, scope);
+    public static VaList newVaListOfAddress(MemoryAddress ma, MemorySession session) {
+        return WindowsAArch64VaList.ofAddress(ma, session);
     }
 
     public static VaList emptyVaList() {

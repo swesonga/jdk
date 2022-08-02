@@ -42,7 +42,8 @@
 import java.lang.foreign.*;
 import java.lang.foreign.VaList;
 import jdk.internal.foreign.abi.aarch64.linux.LinuxAArch64Linker;
-import jdk.internal.foreign.abi.aarch64.macos.WindowsAArch64Linker;
+import jdk.internal.foreign.abi.aarch64.macos.MacOsAArch64Linker;
+import jdk.internal.foreign.abi.aarch64.windows.WindowsAArch64Linker;
 import jdk.internal.foreign.abi.x64.sysv.SysVx64Linker;
 import jdk.internal.foreign.abi.x64.windows.Windowsx64Linker;
 import org.testng.annotations.DataProvider;
@@ -134,7 +135,7 @@ public class VaListTest extends NativeTestHelper {
     private static final Function<Consumer<VaList.Builder>, VaList> linuxAArch64VaListFactory
             = actions -> LinuxAArch64Linker.newVaList(actions, MemorySession.openImplicit());
     private static final Function<Consumer<VaList.Builder>, VaList> macAArch64VaListFactory
-            = actions -> WindowsAArch64Linker.newVaList(actions, MemorySession.openImplicit());
+            = actions -> MacOsAArch64Linker.newVaList(actions, MemorySession.openImplicit());
     private static final Function<Consumer<VaList.Builder>, VaList> winAArch64VaListFactory
             = actions -> WindowsAArch64Linker.newVaList(actions, MemorySession.openImplicit());
     private static final Function<Consumer<VaList.Builder>, VaList> platformVaListFactory
@@ -147,7 +148,7 @@ public class VaListTest extends NativeTestHelper {
     private static final BiFunction<Consumer<VaList.Builder>, MemorySession, VaList> linuxAArch64VaListScopedFactory
             = LinuxAArch64Linker::newVaList;
     private static final BiFunction<Consumer<VaList.Builder>, MemorySession, VaList> macAArch64VaListScopedFactory
-            = WindowsAArch64Linker::newVaList;
+            = MacOsAArch64Linker::newVaList;
     private static final BiFunction<Consumer<VaList.Builder>, MemorySession, VaList> winAArch64VaListScopedFactory
             = (builder, scope) -> WindowsAArch64Linker.newVaList(builder, scope.scope());
     private static final BiFunction<Consumer<VaList.Builder>, MemorySession, VaList> platformVaListScopedFactory

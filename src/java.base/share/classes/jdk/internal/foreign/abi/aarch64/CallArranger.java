@@ -40,6 +40,7 @@ import jdk.internal.foreign.abi.SharedUtils;
 import jdk.internal.foreign.abi.VMStorage;
 import jdk.internal.foreign.abi.aarch64.linux.LinuxAArch64CallArranger;
 import jdk.internal.foreign.abi.aarch64.macos.MacOsAArch64CallArranger;
+import jdk.internal.foreign.abi.aarch64.windows.WindowsAArch64CallArranger;
 import jdk.internal.foreign.Utils;
 
 import java.lang.foreign.MemorySession;
@@ -105,6 +106,7 @@ public abstract class CallArranger {
 
     public static final CallArranger LINUX = new LinuxAArch64CallArranger();
     public static final CallArranger MACOS = new MacOsAArch64CallArranger();
+    public static final CallArranger WINDOWS = new WindowsAArch64CallArranger();
 
     /**
      * Are variadic arguments assigned to registers as in the standard calling

@@ -23,7 +23,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package jdk.internal.foreign.abi.aarch64.macos;
+package jdk.internal.foreign.abi.aarch64.windows;
 
 import java.lang.foreign.*;
 import jdk.internal.foreign.abi.aarch64.TypeClass;

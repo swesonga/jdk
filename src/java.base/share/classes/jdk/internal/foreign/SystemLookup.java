@@ -121,7 +121,7 @@ public class SystemLookup implements SymbolLookup {
         Path javahome = Path.of(GetPropertyAction.privilegedGetProperty("java.home"));
         String lib = switch (CABI.current()) {
             case SysV, LinuxAArch64, MacOsAArch64 -> "lib";
-            case Win64 -> "bin";
+            case Win64, WindowsAArch64 -> "bin";
         };
         String libname = System.mapLibraryName(name);
         return javahome.resolve(lib).resolve(libname);
