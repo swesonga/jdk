@@ -41,7 +41,7 @@ import static jdk.internal.foreign.PlatformLayouts.AArch64.C_POINTER;
 import static jdk.internal.foreign.abi.SharedUtils.alignUp;
 
 /**
- * Simplified va_list implementation used on macOS where all variadic
+ * Simplified va_list implementation used on Windows where all variadic
  * parameters are passed on the stack and the type of va_list decays to
  * char* instead of the structure defined in the AAPCS.
  */

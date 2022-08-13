@@ -82,12 +82,12 @@ public final class WindowsAArch64Linker extends AbstractLinker {
 
     @Override
     protected MethodHandle arrangeDowncall(MethodType inferredMethodType, FunctionDescriptor function) {
-        return CallArranger.WINDOWS.arrangeDowncall(inferredMethodType, function);
+        return WindowsAArch64CallArranger.AArch64CallArranger.arrangeDowncall(inferredMethodType, function);
     }
 
     @Override
     protected MemorySegment arrangeUpcall(MethodHandle target, MethodType targetType, FunctionDescriptor function, MemorySession scope) {
-        return CallArranger.WINDOWS.arrangeUpcall(target, targetType, function, scope);
+        return  WindowsAArch64CallArranger.AArch64CallArranger.arrangeUpcall(target, targetType, function, scope);
     }
 
     public static VaList newVaList(Consumer<VaList.Builder> actions, MemorySession session) {

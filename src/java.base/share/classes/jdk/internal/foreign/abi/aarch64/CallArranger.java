@@ -106,7 +106,7 @@ public abstract class CallArranger {
 
     public static final CallArranger LINUX = new LinuxAArch64CallArranger();
     public static final CallArranger MACOS = new MacOsAArch64CallArranger();
-    public static final CallArranger WINDOWS = new WindowsAArch64CallArranger();
+    //public static final CallArranger WINDOWS = new WindowsAArch64CallArranger();
 
     /**
      * Are variadic arguments assigned to registers as in the standard calling
