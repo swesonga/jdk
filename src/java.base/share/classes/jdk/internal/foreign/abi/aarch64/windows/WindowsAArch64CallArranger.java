@@ -72,8 +72,8 @@ public class WindowsAArch64CallArranger {
     // registers, it's not possible to generate a C function that uses
     // r2-7 and v4-7 so they are omitted here.
     private static final ABIDescriptor C = abiFor(
-        new VMStorage[] { r0, r1, r2, r3, r4, r5, r6, r7, INDIRECT_RESULT},
-        new VMStorage[] { v0, v1, v2, v3, v4, v5, v6, v7 },
+        new VMStorage[] { r0, r1, r2, r3, r4, r5, r6, r7 },
+        new VMStorage[] { },
         new VMStorage[] { r0, r1 },
         new VMStorage[] { v0, v1, v2, v3 },
         new VMStorage[] { r9, r10, r11, r12, r13, r14, r15 },
@@ -402,7 +402,7 @@ public class WindowsAArch64CallArranger {
                 }
                 case FLOAT: {
                     VMStorage storage =
-                        storageCalculator.nextStorage(StorageClasses.VECTOR, layout);
+                        storageCalculator.nextStorage(StorageClasses.INTEGER, layout);
                     bindings.vmStore(storage, carrier);
                     break;
                 }
