@@ -150,7 +150,7 @@ public class VaListTest extends NativeTestHelper {
     private static final BiFunction<Consumer<VaList.Builder>, MemorySession, VaList> macAArch64VaListScopedFactory
             = MacOsAArch64Linker::newVaList;
     private static final BiFunction<Consumer<VaList.Builder>, MemorySession, VaList> winAArch64VaListScopedFactory
-            = (builder, scope) -> WindowsAArch64Linker.newVaList(builder, scope.scope());
+            = WindowsAArch64Linker.newVaList;
     private static final BiFunction<Consumer<VaList.Builder>, MemorySession, VaList> platformVaListScopedFactory
             = VaList::make;
 
@@ -629,7 +629,7 @@ public class VaListTest extends NativeTestHelper {
                 { sysvVaListScopedFactory,         SysV.C_INT    },
                 { linuxAArch64VaListScopedFactory, AArch64.C_INT },
                 { macAArch64VaListScopedFactory,   AArch64.C_INT },
-                { winAArch64VaListFactory,         AArch64.C_INT },
+                { winAArch64VaListScopedFactory,   AArch64.C_INT },
         };
     }
 
