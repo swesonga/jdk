@@ -72,12 +72,12 @@ public class WindowsAArch64CallArranger {
     // registers, it's not possible to generate a C function that uses
     // r2-7 and v4-7 so they are omitted here.
     private static final ABIDescriptor C = abiFor(
-        new VMStorage[] { r0, r1, r2, r3, r4, r5, r6, r7 },
+        new VMStorage[] { r0, r1, r2, r3, r4, r5, r6, r7, INDIRECT_RESULT },
         new VMStorage[] { v0, v1, v2, v3, v4, v5, v6, v7 },
-        new VMStorage[] { r0 },
+        new VMStorage[] { r0, r1 },
         new VMStorage[] { v0, v1, v2, v3 },
-        new VMStorage[] { r9, r10, r11, r12, r13, r14, r15 },
-        new VMStorage[] { v16, v17, v18, v19, v20, v21, v22, v23, v25,
+        new VMStorage[] { r9, r10, r11, r12, r13, r14, r15, r16, r17 },
+        new VMStorage[] { v16, v17, v18, v19, v20, v21, v22, v23, v24, v25,
                           v26, v27, v28, v29, v30, v31 },
         16,  // Stack is always 16 byte aligned on AArch64
         0,   // No shadow space
