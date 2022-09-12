@@ -39,7 +39,7 @@ import jdk.internal.foreign.abi.DowncallLinker;
 import jdk.internal.foreign.abi.UpcallLinker;
 import jdk.internal.foreign.abi.SharedUtils;
 import jdk.internal.foreign.abi.VMStorage;
-import jdk.internal.foreign.abi.aarch64.*;
+import jdk.internal.foreign.abi.aarch64.TypeClass;
 import jdk.internal.foreign.Utils;
 
 import java.lang.foreign.MemorySession;
@@ -73,8 +73,8 @@ public class WindowsAArch64CallArranger {
     // r2-7 and v4-7 so they are omitted here.
     private static final ABIDescriptor C = abiFor(
         new VMStorage[] { r0, r1, r2, r3, r4, r5, r6, r7 },
-        new VMStorage[] { },
-        new VMStorage[] { r0, r1 },
+        new VMStorage[] { v0, v1, v2, v3, v4, v5, v6, v7 },
+        new VMStorage[] { r0 },
         new VMStorage[] { v0, v1, v2, v3 },
         new VMStorage[] { r9, r10, r11, r12, r13, r14, r15 },
         new VMStorage[] { v16, v17, v18, v19, v20, v21, v22, v23, v25,
@@ -128,8 +128,10 @@ public class WindowsAArch64CallArranger {
     public Bindings getBindings(MethodType mt, FunctionDescriptor cDesc, boolean forUpcall) {
         CallingSequenceBuilder csb = new CallingSequenceBuilder(C, forUpcall);
 
-        BindingCalculator argCalc = forUpcall ? new BoxBindingCalculator(true) : new UnboxBindingCalculator(true);
-        BindingCalculator retCalc = forUpcall ? new UnboxBindingCalculator(false) : new BoxBindingCalculator(false);
+        boolean forVariadicFunction = cDesc.firstVariadicArgumentIndex() >= 0;
+
+        BindingCalculator argCalc = forUpcall ? new BoxBindingCalculator(true) : new UnboxBindingCalculator(true, forVariadicFunction);
+        BindingCalculator retCalc = forUpcall ? new UnboxBindingCalculator(false, forVariadicFunction) : new BoxBindingCalculator(false);
 
         boolean returnInMemory = isInMemoryReturn(cDesc.returnLayout());
         if (returnInMemory) {
@@ -313,8 +315,13 @@ public class WindowsAArch64CallArranger {
     }
 
     class UnboxBindingCalculator extends BindingCalculator {
-        UnboxBindingCalculator(boolean forArguments) {
+        protected final boolean forArguments;
+        protected final boolean forVariadicFunction;
+
+        UnboxBindingCalculator(boolean forArguments, boolean forVariadicFunction) {
             super(forArguments);
+            this.forArguments = forArguments;
+            this.forVariadicFunction = forVariadicFunction;
         }
 
         @Override
@@ -329,6 +336,15 @@ public class WindowsAArch64CallArranger {
         List<Binding> getBindings(Class<?> carrier, MemoryLayout layout) {
             TypeClass argumentClass = TypeClass.classifyLayout(layout);
             Binding.Builder bindings = Binding.builder();
+
+            boolean useIntRegsForFloatingPointArgs = true;
+
+            // Pass HFA arguments as a struct reference
+            boolean useInt = useIntRegsForFloatingPointArgs && forVariadicFunction && forArguments;
+            if (useInt && argumentClass == TypeClass.STRUCT_HFA) {
+                argumentClass = layout.byteSize() <= 16 ? TypeClass.STRUCT_REGISTER : TypeClass.STRUCT_REFERENCE;
+            }
+
             switch (argumentClass) {
                 case STRUCT_REGISTER: {
                     assert carrier == MemorySegment.class;
@@ -340,7 +356,7 @@ public class WindowsAArch64CallArranger {
                         while (offset < layout.byteSize()) {
                             final long copy = Math.min(layout.byteSize() - offset, 8);
                             VMStorage storage = regs[regIndex++];
-                            boolean useFloat = storage.type() == StorageClasses.VECTOR;
+                            boolean useFloat = (!useInt) && storage.type() == StorageClasses.VECTOR;
                             Class<?> type = SharedUtils.primitiveCarrierForSize(copy, useFloat);
                             if (offset + copy < layout.byteSize()) {
                                 bindings.dup();
@@ -401,8 +417,10 @@ public class WindowsAArch64CallArranger {
                     break;
                 }
                 case FLOAT: {
+                    // Windows needs the floating point arguments in general purpose registers for downcalls to variadic functions
+                    int type = (forVariadicFunction && forArguments) ? StorageClasses.INTEGER : StorageClasses.VECTOR;
                     VMStorage storage =
-                        storageCalculator.nextStorage(StorageClasses.INTEGER, layout);
+                        storageCalculator.nextStorage(type, layout);
                     bindings.vmStore(storage, carrier);
                     break;
                 }
@@ -501,7 +519,7 @@ public class WindowsAArch64CallArranger {
                 }
                 case FLOAT: {
                     VMStorage storage =
-                        storageCalculator.nextStorage(StorageClasses.INTEGER, layout);
+                        storageCalculator.nextStorage(StorageClasses.VECTOR, layout);
                     bindings.vmLoad(storage, carrier);
                     break;
                 }

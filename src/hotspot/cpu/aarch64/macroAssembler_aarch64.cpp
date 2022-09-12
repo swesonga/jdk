@@ -5890,7 +5890,9 @@ void MacroAssembler::float_move(VMRegPair src, VMRegPair dst, Register tmp) {
   } else if (src.first() != dst.first()) {
     if (src.is_single_phys_reg() && dst.is_single_phys_reg())
       fmovs(dst.first()->as_FloatRegister(), src.first()->as_FloatRegister());
-    else
+    else if (dst.first()->is_reg()) {
+      fmovs(dst.first()->as_Register(), src.first()->as_FloatRegister());
+    } else
       strs(src.first()->as_FloatRegister(), Address(sp, reg2offset_out(dst.first())));
   }
 }
