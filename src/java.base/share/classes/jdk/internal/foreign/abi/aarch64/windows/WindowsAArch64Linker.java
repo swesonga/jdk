@@ -26,26 +26,17 @@
  */
 package jdk.internal.foreign.abi.aarch64.windows;
 
-import java.lang.foreign.Addressable;
+import jdk.internal.foreign.abi.AbstractLinker;
+import jdk.internal.foreign.abi.aarch64.CallArranger;
+
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemoryAddress;
-import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.MemorySession;
 import java.lang.foreign.VaList;
-import jdk.internal.foreign.abi.AbstractLinker;
-import jdk.internal.foreign.abi.SharedUtils;
-import jdk.internal.foreign.abi.UpcallStubs;
-import jdk.internal.foreign.abi.aarch64.CallArranger;
-import jdk.internal.foreign.MemorySessionImpl;
-
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.util.Objects;
 import java.util.function.Consumer;
-
-import static jdk.internal.foreign.PlatformLayouts.*;
 
 /**
  * ABI implementation for Windows/AArch64. Based on AAPCS with
@@ -53,25 +44,6 @@ import static jdk.internal.foreign.PlatformLayouts.*;
  */
 public final class WindowsAArch64Linker extends AbstractLinker {
     private static WindowsAArch64Linker instance;
-
-    static final long ADDRESS_SIZE = 64; // bits
-
-    /* TODO: Is this code still necessary?
-    private static final MethodHandle MH_unboxVaList;
-    private static final MethodHandle MH_boxVaList;
-
-    static {
-        try {
-            MethodHandles.Lookup lookup = MethodHandles.lookup();
-            MH_unboxVaList = lookup.findVirtual(VaList.class, "address",
-                MethodType.methodType(MemoryAddress.class));
-            MH_boxVaList = MethodHandles.insertArguments(lookup.findStatic(WindowsAArch64Linker.class, "newVaListOfAddress",
-                MethodType.methodType(VaList.class, MemoryAddress.class, MemorySession.class)), 1, MemorySession.globalScope());
-        } catch (ReflectiveOperationException e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
-     */
 
     public static WindowsAArch64Linker getInstance() {
         if (instance == null) {
@@ -82,12 +54,12 @@ public final class WindowsAArch64Linker extends AbstractLinker {
 
     @Override
     protected MethodHandle arrangeDowncall(MethodType inferredMethodType, FunctionDescriptor function) {
-        return WindowsAArch64CallArranger.AArch64CallArranger.arrangeDowncall(inferredMethodType, function);
+        return CallArranger.WINDOWS.arrangeDowncall(inferredMethodType, function);
     }
 
     @Override
     protected MemorySegment arrangeUpcall(MethodHandle target, MethodType targetType, FunctionDescriptor function, MemorySession scope) {
-        return  WindowsAArch64CallArranger.AArch64CallArranger.arrangeUpcall(target, targetType, function, scope);
+        return  CallArranger.WINDOWS.arrangeUpcall(target, targetType, function, scope);
     }
 
     public static VaList newVaList(Consumer<VaList.Builder> actions, MemorySession session) {

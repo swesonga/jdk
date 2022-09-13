@@ -561,7 +561,7 @@ public class VaListTest extends NativeTestHelper {
                 { sysvVaListFactory.apply(b -> {})         },
                 { LinuxAArch64Linker.emptyVaList()         },
                 { linuxAArch64VaListFactory.apply(b -> {}) },
-                { WindowsAArch64Linker.emptyVaList()         },
+                { MacOsAArch64Linker.emptyVaList()         },
                 { macAArch64VaListFactory.apply(b -> {})   },
                 { WindowsAArch64Linker.emptyVaList()       },
                 { winAArch64VaListFactory.apply(b -> {})   },
