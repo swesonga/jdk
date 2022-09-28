@@ -40,11 +40,15 @@ import java.util.Objects;
 import static jdk.internal.foreign.PlatformLayouts.AArch64.C_POINTER;
 import static jdk.internal.foreign.abi.SharedUtils.alignUp;
 
-/**
- * Simplified va_list implementation used on Windows where all variadic
- * parameters are passed on the stack and the type of va_list decays to
- * char* instead of the structure defined in the AAPCS.
- */
+// see vadefs.h (VC header) for the ARM64 va_arg impl
+//
+//    typedef char* va_list;
+//
+//    #define __crt_va_arg(ap, t)                                                \
+//        ((sizeof(t) > (2 * sizeof(__int64)))                                   \
+//            ? **(t**)((ap += sizeof(__int64)) - sizeof(__int64))               \
+//            : *(t*)((ap += _SLOTSIZEOF(t) + _APALIGN(t,ap)) - _SLOTSIZEOF(t)))
+//
 public non-sealed class WindowsAArch64VaList implements VaList, Scoped {
     private static final long VA_SLOT_SIZE_BYTES = 8;
     private static final VarHandle VH_address = C_POINTER.varHandle();
@@ -243,7 +247,7 @@ public non-sealed class WindowsAArch64VaList implements VaList, Scoped {
                             cursor = cursor.asSlice(VA_SLOT_SIZE_BYTES);
                         }
                         case STRUCT_REGISTER, STRUCT_HFA ->
-                            cursor.copyFrom(msArg.asSlice(0, arg.layout.byteSize()))
+                            cursor = cursor.copyFrom(msArg.asSlice(0, arg.layout.byteSize()))
                                     .asSlice(alignUp(arg.layout.byteSize(), VA_SLOT_SIZE_BYTES));
                         default -> throw new IllegalStateException("Unexpected TypeClass: " + typeClass);
                     }
