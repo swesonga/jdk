@@ -714,4 +714,31 @@ public class TestAarch64CallArranger extends CallArrangerTestBase {
 
         checkReturnBindings(callingSequence, new Binding[]{});
     }
+
+    @Test
+    public void testWindowsStructWith5Doubles() {
+        MemoryLayout struct = MemoryLayout.structLayout(C_DOUBLE, C_DOUBLE, C_DOUBLE, C_DOUBLE, C_DOUBLE);
+
+        MethodType mt = MethodType.methodType(
+            void.class, MemorySegment.class, int.class);
+        FunctionDescriptor fd = FunctionDescriptor.ofVoid(struct, C_INT);
+        CallArranger.Bindings bindings = CallArranger.WINDOWS.getBindings(mt, fd, false);
+
+        assertFalse(bindings.isInMemoryReturn);
+        CallingSequence callingSequence = bindings.callingSequence;
+        assertEquals(callingSequence.callerMethodType(), mt.insertParameterTypes(0, Addressable.class));
+        assertEquals(callingSequence.functionDesc(), fd.insertArgumentLayouts(0, ADDRESS));
+
+        checkArgumentBindings(callingSequence, new Binding[][]{
+            { unboxAddress(Addressable.class), vmStore(r9, long.class) },
+            {
+                copy(struct),
+                unboxAddress(MemorySegment.class),
+                vmStore(r0, long.class)
+            },
+            { vmStore(r1, int.class) },
+        });
+
+        checkReturnBindings(callingSequence, new Binding[]{});
+    }
 }
