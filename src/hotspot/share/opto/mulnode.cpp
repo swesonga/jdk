@@ -2020,7 +2020,7 @@ const Type* FmaFNode::Value(PhaseGVN* phase) const {
   float f1 = t1->getf();
   float f2 = t2->getf();
   float f3 = t3->getf();
-  return TypeF::make(fma(f1, f2, f3));
+  return TypeF::make(std::fma(f1, f2, f3));
 #endif
 }
 
@@ -2042,7 +2042,7 @@ const Type* FmaHFNode::Value(PhaseGVN* phase) const {
   float f1 = t1->getf();
   float f2 = t2->getf();
   float f3 = t3->getf();
-  return TypeH::make(fma(f1, f2, f3));
+  return TypeH::make(std::fma(f1, f2, f3));
 #endif
 }
 
