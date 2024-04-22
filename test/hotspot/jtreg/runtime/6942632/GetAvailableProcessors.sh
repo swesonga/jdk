@@ -137,7 +137,7 @@ runtimeAvailableProcessors=$(<$JAVAPROCS)
 echo "java.lang.Runtime.availableProcessors: $runtimeAvailableProcessors"
 echo "SYSTEM_INFO.dwNumberOfProcessors:      $dwNumberOfProcessors"
 
-if [ "$VAR1" != "$VAR2" ]; then
+if [ "$runtimeAvailableProcessors" != "$dwNumberOfProcessors" ]; then
   echo "Test failed: Runtime.availableProcessors ($runtimeAvailableProcessors) != dwNumberOfProcessors ($dwNumberOfProcessors)"
   exit 1
 else
