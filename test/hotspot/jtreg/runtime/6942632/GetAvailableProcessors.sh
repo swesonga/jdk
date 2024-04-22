@@ -25,7 +25,8 @@
 # @bug 6942632
 # @summary This test ensures that OpenJDK respects the process affinity
 #          masks set when launched from the Windows command prompt using
-#          "start /affinity HEXAFFINITY java.exe"
+#          "start /affinity HEXAFFINITY java.exe" when the
+#          UseAllWindowsProcessorGroups flag is enabled.
 
 OS=`uname -s`
 case "$OS" in
@@ -108,7 +109,7 @@ else
 fi
 
 # Write Runtime.availableProcessors to a log file
-javaCmdLine="${TESTJAVA}/bin/java ${TESTVMOPTS} -cp ${TESTCLASSES} $SRCFILEBASE"
+javaCmdLine="${TESTJAVA}/bin/java -XX:+UseAllWindowsProcessorGroups ${TESTVMOPTS} -cp ${TESTCLASSES} $SRCFILEBASE"
 commandLine="start /wait /b /affinity $affinity $javaCmdLine > $LOGFILE"
 
 echo "Executing: $commandLine"
