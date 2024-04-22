@@ -21,6 +21,12 @@
 # questions.
 #
 
+# @test
+# @bug 6942632
+# @summary This test ensures that OpenJDK respects the process affinity
+#          masks set when launched from the Windows command prompt using
+#          "start /affinity HEXAFFINITY java.exe"
+
 OS=`uname -s`
 case "$OS" in
   Windows* | CYGWIN* )
@@ -65,8 +71,48 @@ if [ ! $status -eq "0" ]; then
   exit 1
 fi
 
+# Write SYSTEM_INFO.dwNumberOfProcessors to a log file
+GETPROCINFONAME=GetSystemInfo
+GETPROCINFOLOG="${TESTCLASSES}/$GETPROCINFONAME.output.log"
+${TESTNATIVEPATH}/$GETPROCINFONAME > $GETPROCINFOLOG 2>&1
+
+# Validate output from GetSystemInfo.exe
+grep -Po "dwNumberOfProcessors: \\d+" $GETPROCINFOLOG
+status=$?
+if [ ! $status -eq "0" ]; then
+  echo "TESTBUG: $GETPROCINFONAME did not output a processor count.";
+  exit 1
+fi
+
+# Write the processor count to a file
+NATIVEPROCS="${TESTCLASSES}/processor_count_native.txt"
+grep -Po "dwNumberOfProcessors: \\d+" $GETPROCINFOLOG   | sed -e 's/[a-zA-Z: \.]//g' > $NATIVEPROCS 2>&1
+dwNumberOfProcessorsStr=$(<$NATIVEPROCS)
+let dwNumberOfProcessors=dwNumberOfProcessorsStr
+
+if [ $dwNumberOfProcessors -le 0 ]; then
+  echo "Test failed: $GETPROCINFONAME did not output a valid processor count.";
+  exit 1
+fi
+
+if [ $dwNumberOfProcessors -gt 64 ]; then
+  echo "Test failed: $GETPROCINFONAME returned an invalid processor count.";
+  exit 1
+fi
+
+if [ $dwNumberOfProcessors -lt 64 ]; then
+  let affinity=$((1 << dwNumberOfProcessors))-1
+  affinity=$(printf "%x" "$affinity")
+else
+  affinity=0xffffffffffffffff
+fi
+
 # Write Runtime.availableProcessors to a log file
-${TESTJAVA}/bin/java ${TESTVMOPTS} -cp ${TESTCLASSES} $SRCFILEBASE > $LOGFILE 2>&1
+javaCmdLine="${TESTJAVA}/bin/java ${TESTVMOPTS} -cp ${TESTCLASSES} $SRCFILEBASE"
+commandLine="start /wait /b /affinity $affinity $javaCmdLine > $LOGFILE"
+
+echo "Executing: $commandLine"
+cmd /c $commandLine
 status=$?
 if [ ! $status -eq "0" ]; then
   echo "Test FAILED: $SRCFILE";
@@ -81,28 +127,12 @@ if [ ! $status -eq "0" ]; then
   exit 1
 fi
 
-# Write SYSTEM_INFO.dwNumberOfProcessors to a log file
-GETPROCINFONAME=GetSystemInfo
-GETPROCINFOLOG="${TESTCLASSES}/$GETPROCINFONAME.output.log"
-${TESTNATIVEPATH}/$GETPROCINFONAME > $GETPROCINFOLOG 2>&1
-
-# Validate output from GetSystemInfo.exe
-grep -Po "dwNumberOfProcessors: \\d+" $GETPROCINFOLOG
-status=$?
-if [ ! $status -eq "0" ]; then
-  echo "TESTBUG: $GETPROCINFONAME did not output a processor count.";
-  exit 1
-fi
-
-# Write each processor count to a file
+# Write the processor count to a file
 JAVAPROCS="${TESTCLASSES}/processor_count_java.txt"
-NATIVEPROCS="${TESTCLASSES}/processor_count_native.txt"
 grep -Po "Runtime\\.availableProcessors: \\d+" $LOGFILE | sed -e 's/[a-zA-Z: \.]//g' > $JAVAPROCS 2>&1
-grep -Po "dwNumberOfProcessors: \\d+" $GETPROCINFOLOG   | sed -e 's/[a-zA-Z: \.]//g' > $NATIVEPROCS 2>&1
+runtimeAvailableProcessors=$(<$JAVAPROCS)
 
 # Ensure the processor counts are identical
-runtimeAvailableProcessors=$(<$JAVAPROCS)
-dwNumberOfProcessors=$(<$NATIVEPROCS)
 
 echo "java.lang.Runtime.availableProcessors: $runtimeAvailableProcessors"
 echo "SYSTEM_INFO.dwNumberOfProcessors:      $dwNumberOfProcessors"
