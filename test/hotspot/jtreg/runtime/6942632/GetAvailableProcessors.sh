@@ -86,12 +86,15 @@ if [ ! $status -eq "0" ]; then
   exit 1
 fi
 
-# Write the processor count to a file
+# Write the processor counts to a file
 NATIVEPROCS="${TESTCLASSES}/processor_count_native.log"
 grep -Po "$processor_info_regex" $GETPROCINFOLOG   | sed -e 's/[a-zA-Z: \.]//g' > $NATIVEPROCS 2>&1
 group_processor_counts_str=$(<$NATIVEPROCS)
-group_processor_counts=(${group_processor_counts_str//,/})
+IFS=, read -a group_processor_counts <<<"$group_processor_counts_str"
 
+# Find the smallest processor group because on systems with different processor
+# group sizes, "start /affinity" can still launch a process in a smaller
+# processor group than the affinity provided via the /affinity parameter
 let dwNumberOfProcessors=64
 for i in "${group_processor_counts[@]}"; do
   let group_processor_count=i
