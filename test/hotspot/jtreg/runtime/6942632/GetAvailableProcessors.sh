@@ -73,11 +73,11 @@ if [ ! $status -eq "0" ]; then
 fi
 
 # Write SYSTEM_INFO.dwNumberOfProcessors to a log file
-GETPROCINFONAME=GetSystemInfo
+GETPROCINFONAME=GetProcessorInfo
 GETPROCINFOLOG="${TESTCLASSES}/$GETPROCINFONAME.output.log"
 ${TESTNATIVEPATH}/$GETPROCINFONAME > $GETPROCINFOLOG 2>&1
 
-# Validate output from GetSystemInfo.exe
+# Validate output from GetProcessorInfo.exe
 grep -Po "dwNumberOfProcessors: \\d+" $GETPROCINFOLOG
 status=$?
 if [ ! $status -eq "0" ]; then
