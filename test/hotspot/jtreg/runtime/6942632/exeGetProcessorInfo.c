@@ -67,7 +67,7 @@ int main()
         return 1;
     }
 
-    printf("%d->%d, ", i, active_processors_in_group);
+    printf("%d,", active_processors_in_group);
   }
 
   free(group_array);

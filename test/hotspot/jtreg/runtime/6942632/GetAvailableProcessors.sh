@@ -78,7 +78,8 @@ GETPROCINFOLOG="${TESTCLASSES}/$GETPROCINFONAME.output.log"
 ${TESTNATIVEPATH}/$GETPROCINFONAME > $GETPROCINFOLOG 2>&1
 
 # Validate output from GetProcessorInfo.exe
-grep -Po "dwNumberOfProcessors: \\d+" $GETPROCINFOLOG
+processor_info_regex="Active processors per group: (\\d+,)+"
+grep -Po "$processor_info_regex" $GETPROCINFOLOG
 status=$?
 if [ ! $status -eq "0" ]; then
   echo "TESTBUG: $GETPROCINFONAME did not output a processor count.";
@@ -86,10 +87,19 @@ if [ ! $status -eq "0" ]; then
 fi
 
 # Write the processor count to a file
-NATIVEPROCS="${TESTCLASSES}/processor_count_native.txt"
-grep -Po "dwNumberOfProcessors: \\d+" $GETPROCINFOLOG   | sed -e 's/[a-zA-Z: \.]//g' > $NATIVEPROCS 2>&1
-dwNumberOfProcessorsStr=$(<$NATIVEPROCS)
-let dwNumberOfProcessors=dwNumberOfProcessorsStr
+NATIVEPROCS="${TESTCLASSES}/processor_count_native.log"
+grep -Po "$processor_info_regex" $GETPROCINFOLOG   | sed -e 's/[a-zA-Z: \.]//g' > $NATIVEPROCS 2>&1
+group_processor_counts_str=$(<$NATIVEPROCS)
+group_processor_counts=(${group_processor_counts_str//,/})
+
+let dwNumberOfProcessors=64
+for i in "${group_processor_counts[@]}"; do
+  let group_processor_count=i
+  echo "Active processors in group: $group_processor_count"
+  if [ $group_processor_count -lt $dwNumberOfProcessors ]; then
+    dwNumberOfProcessors=$group_processor_count
+  fi
+done
 
 if [ $dwNumberOfProcessors -le 0 ]; then
   echo "Test failed: $GETPROCINFONAME did not output a valid processor count.";
@@ -129,7 +139,7 @@ if [ ! $status -eq "0" ]; then
 fi
 
 # Write the processor count to a file
-JAVAPROCS="${TESTCLASSES}/processor_count_java.txt"
+JAVAPROCS="${TESTCLASSES}/processor_count_java.log"
 grep -Po "Runtime\\.availableProcessors: \\d+" $LOGFILE | sed -e 's/[a-zA-Z: \.]//g' > $JAVAPROCS 2>&1
 runtimeAvailableProcessors=$(<$JAVAPROCS)
 
