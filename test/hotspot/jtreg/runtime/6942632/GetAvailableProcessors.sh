@@ -125,7 +125,7 @@ java_cmd_line="${TESTJAVA}/bin/java -XX:+UseAllWindowsProcessorGroups ${TESTVMOP
 cmd_line="start /wait /b /affinity $affinity $java_cmd_line > $log_file"
 
 echo "Executing: $cmd_line"
-cmd /c $cmd_line
+cmd.exe /c $cmd_line
 status=$?
 if [ ! $status -eq "0" ]; then
   echo "Test FAILED: $src_file";
