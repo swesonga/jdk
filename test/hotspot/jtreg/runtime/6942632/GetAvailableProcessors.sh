@@ -29,6 +29,16 @@
 #          "start /affinity HEXAFFINITY java.exe" when the
 #          UseAllWindowsProcessorGroups flag is enabled.
 
+#echo "----------------------------------"
+#env
+#echo "----------------------------------"
+
+if [ "${SystemRoot}" = "" ]
+then
+  echo "SystemRoot environment variable not set. Test cannot execute."
+  exit 1
+fi
+
 if [ "${TESTSRC}" = "" ]
 then
   echo "TESTSRC not set. Test cannot execute."
@@ -122,10 +132,10 @@ fi
 
 # Write Runtime.availableProcessors to a log file
 java_cmd_line="${TESTJAVA}/bin/java -XX:+UseAllWindowsProcessorGroups ${TESTVMOPTS} -cp ${TESTCLASSES} $src_file_base"
-cmd_line="start /wait /b /affinity $affinity $java_cmd_line > $log_file"
+cmd_line="$SystemRoot/System32/cmd.exe /c start /wait /b /affinity $affinity $java_cmd_line > $log_file"
 
 echo "Executing: $cmd_line"
-cmd.exe /c $cmd_line
+$cmd_line
 status=$?
 if [ ! $status -eq "0" ]; then
   echo "Test FAILED: $src_file";
