@@ -36,12 +36,13 @@
 system_root=$SystemRoot
 if [ "${system_root}" = "" ]
 then
+  echo "SystemRoot environment variable not set. Checking SYSTEMROOT environment variable."
   system_root=$SYSTEMROOT
 fi
 
 if [ "${system_root}" = "" ]
 then
-  echo "SystemRoot environment variable not set. Test cannot execute."
+  echo "Neither SystemRoot nor SYSTEMROOT environment variables have been set. Test cannot execute."
   exit 1
 fi
 
@@ -145,6 +146,7 @@ fi
 
 # Write Runtime.availableProcessors to a log file
 java_cmd_line="${TESTJAVA}/bin/java -XX:+UseAllWindowsProcessorGroups ${TESTVMOPTS} -cp ${TESTCLASSES} $src_file_base"
+# TODO: Replace with system_root
 cmd_line="$SystemRoot/System32/cmd.exe /c start /wait /b /affinity $affinity $java_cmd_line > $log_file"
 
 echo "Executing: $cmd_line"
