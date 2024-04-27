@@ -33,7 +33,13 @@
 #env
 #echo "----------------------------------"
 
-if [ "${SystemRoot}" = "" ]
+system_root=$SystemRoot
+if [ "${system_root}" = "" ]
+then
+  system_root=$SYSTEMROOT
+fi
+
+if [ "${system_root}" = "" ]
 then
   echo "SystemRoot environment variable not set. Test cannot execute."
   exit 1
