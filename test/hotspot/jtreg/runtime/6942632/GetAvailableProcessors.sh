@@ -85,6 +85,9 @@ get_proc_info_name="GetProcessorInfo${EXE_SUFFIX}"
 get_proc_info_path="${TESTNATIVEPATH}/${get_proc_info_name}"
 get_proc_info_log="$get_proc_info_name.output.log"
 $get_proc_info_path > $get_proc_info_log 2>&1
+#cygpath $get_proc_info_path > $get_proc_info_log 2>&1
+#new_get_proc_info_path=$(<$get_proc_info_path)
+#$new_get_proc_info_path > $get_proc_info_log 2>&1
 
 status=$?
 if [ ! $status -eq "0" ]; then
@@ -146,7 +149,7 @@ fi
 
 # Write Runtime.availableProcessors to a log file
 java_cmd_line="${TESTJAVA}/bin/java -XX:+UseAllWindowsProcessorGroups ${TESTVMOPTS} -cp ${TESTCLASSES} $src_file_base"
-cmd_line="$system_root/System32/cmd.exe /c start /wait /b /affinity $affinity $java_cmd_line > $log_file"
+cmd_line="$system_root/System32/cmd.exe /c start /wait /b /affinity $affinity \"$java_cmd_line\" > $log_file"
 
 echo "Executing: $cmd_line"
 $cmd_line
@@ -175,6 +178,6 @@ java_runtime_processors=$(<$java_procs_log)
 if [ "$java_runtime_processors" != "$num_processors" ]; then
   echo "Test failed: Runtime.availableProcessors ($java_runtime_processors) != Processor count in smallest group ($num_processors)"
   exit 1
-else
-  echo "Test passed."
 fi
+
+echo "Test passed."
