@@ -66,11 +66,11 @@ echo "TESTCLASSES:    $TESTCLASSES"
 echo "TESTJAVACOPTS:  $TESTJAVACOPTS"
 echo "TESTTOOLVMOPTS: $TESTTOOLVMOPTS"
 
-javac="${TESTJAVA}/bin/javac"
+javac="${TESTJAVA}/bin/javac${EXE_SUFFIX}"
 
 src_file_base=GetAvailableProcessors
 src_file="${TESTSRC}/$src_file_base.java"
-log_file="${TESTCLASSES}/$src_file_base.output.log"
+log_file="$src_file_base.output.log"
 $javac ${TESTJAVACOPTS} ${TESTTOOLVMOPTS} -d ${TESTCLASSES} $src_file
 
 status=$?
@@ -80,9 +80,16 @@ if [ ! $status -eq "0" ]; then
 fi
 
 # Write processor information from Windows APIs to a log file
-get_proc_info_name=GetProcessorInfo
-get_proc_info_log="${TESTCLASSES}/$get_proc_info_name.output.log"
-${TESTNATIVEPATH}/$get_proc_info_name > $get_proc_info_log 2>&1
+get_proc_info_name="GetProcessorInfo${EXE_SUFFIX}"
+get_proc_info_path="${TESTNATIVEPATH}/${get_proc_info_name}"
+get_proc_info_log="$get_proc_info_name.output.log"
+$get_proc_info_path > $get_proc_info_log 2>&1
+
+status=$?
+if [ ! $status -eq "0" ]; then
+  echo "Could not launch $get_proc_info_path";
+  exit 1
+fi
 
 # Validate output from GetProcessorInfo.exe
 unsupported_os_regex="Unsupported OS\\."
@@ -97,7 +104,7 @@ processor_info_regex="Active processors per group: (\\d+,)+"
 grep -Po "$processor_info_regex" $get_proc_info_log
 status=$?
 if [ ! $status -eq "0" ]; then
-  echo "TESTBUG: $get_proc_info_name did not output a processor count.";
+  echo "TESTBUG: $get_proc_info_path did not output a processor count.";
   exit 1
 fi
 
