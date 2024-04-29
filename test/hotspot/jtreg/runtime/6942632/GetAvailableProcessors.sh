@@ -149,7 +149,7 @@ fi
 
 # Write Runtime.availableProcessors to a log file
 java_cmd_line="${TESTJAVA}/bin/java -XX:+UseAllWindowsProcessorGroups ${TESTVMOPTS} -cp ${TESTCLASSES} $src_file_base"
-cmd_line="$system_root/System32/cmd.exe //c \"start /wait /b /affinity $affinity $java_cmd_line\" > $log_file"
+cmd_line="$system_root/System32/cmd.exe //c start //wait //b //affinity $affinity $java_cmd_line > $log_file"
 
 echo "Executing: $cmd_line"
 $cmd_line
