@@ -29,10 +29,6 @@
 #          "start /affinity HEXAFFINITY java.exe" when the
 #          UseAllWindowsProcessorGroups flag is enabled.
 
-#echo "----------------------------------"
-#env
-#echo "----------------------------------"
-
 system_root=$SystemRoot
 if [ "${system_root}" = "" ]
 then
@@ -42,7 +38,7 @@ fi
 
 if [ "${system_root}" = "" ]
 then
-  echo "Neither SystemRoot nor SYSTEMROOT environment variables have been set. Test cannot execute."
+  echo "The SystemRoot environment variable needs to be set. Test cannot execute."
   exit 1
 fi
 
@@ -85,9 +81,6 @@ get_proc_info_name="GetProcessorInfo${EXE_SUFFIX}"
 get_proc_info_path="${TESTNATIVEPATH}/${get_proc_info_name}"
 get_proc_info_log="$get_proc_info_name.output.log"
 $get_proc_info_path > $get_proc_info_log 2>&1
-#cygpath $get_proc_info_path > $get_proc_info_log 2>&1
-#new_get_proc_info_path=$(<$get_proc_info_path)
-#$new_get_proc_info_path > $get_proc_info_log 2>&1
 
 status=$?
 if [ ! $status -eq "0" ]; then
