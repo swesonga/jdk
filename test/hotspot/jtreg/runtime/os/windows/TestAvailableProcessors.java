@@ -92,10 +92,10 @@ public class TestAvailableProcessors {
 
     private static void verifyRuntimeAvailableProcessorsRange(int runtimeAvailableProcs, int smallestProcessorGroup, int largestProcessorGroup) {
         if (runtimeAvailableProcs < smallestProcessorGroup) {
-            String error = String.format("Runtime.availableProcessors ({%d}) must be at least the processor count in smallest processor group ({%d})", runtimeAvailableProcs, smallestProcessorGroup);
+            String error = String.format("Runtime.availableProcessors (%d) must be at least the processor count in smallest processor group (%d)", runtimeAvailableProcs, smallestProcessorGroup);
             throw new RuntimeException(error);
         } else if (runtimeAvailableProcs > largestProcessorGroup) {
-            String error = String.format("Runtime.availableProcessors ({%d}) cannot exceed the max processor group size for a single processor group ({%d}).", runtimeAvailableProcs, largestProcessorGroup);
+            String error = String.format("Runtime.availableProcessors (%d) cannot exceed the max processor group size for a single processor group (%d).", runtimeAvailableProcs, largestProcessorGroup);
             throw new RuntimeException(error);
         }
     }
@@ -168,7 +168,7 @@ public class TestAvailableProcessors {
 
         if (schedulesAllProcessorGroups) {
             if (runtimeAvailableProcs != totalProcessorCount) {
-                String error = String.format("Runtime.availableProcessors ({%d}) is not equal to the expect total processor count ({%d})", runtimeAvailableProcs, totalProcessorCount);
+                String error = String.format("Runtime.availableProcessors (%d) is not equal to the expected total processor count (%d)", runtimeAvailableProcs, totalProcessorCount);
                 throw new RuntimeException(error);
             }
         } else {
@@ -177,16 +177,38 @@ public class TestAvailableProcessors {
         }
     }
 
-    private static void verifyAvailableProcessorsWithDisabledProductFlag(long affinity) {
-        // launch cmd.exe
+    private static void verifyAvailableProcessorsFromStartAffinity(boolean productFlagEnabled, int processors) throws IOException {
+        long affinity = getAffinityForProcessorCount(processors);
+
+        String productFlag = productFlagEnabled ? "-XX:+UseAllWindowsProcessorGroups" : "-XX:-UseAllWindowsProcessorGroups";
+
+        ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
+            new String[] {productFlag, "GetAvailableProcessors"}
+        );
+
+        String javaCommandLine = ProcessTools.getCommandLine(processBuilder);
+
+        List<String> args = new ArrayList<String>();
+        args.add("cmd.exe");
+        args.add("/c");
+        args.add("start /wait /b /affinity " + String.format("%016X", affinity) + " " + javaCommandLine);
+        processBuilder = new ProcessBuilder(args);
+
+        System.out.println("Using command line: " + ProcessTools.getCommandLine(processBuilder));
+
+        var output = new OutputAnalyzer(processBuilder.start());
+        output.shouldHaveExitValue(0);
+        output.shouldContain(runtimeAvailableProcessorsMessage);
+
+        int runtimeAvailableProcs = getAvailableProcessors(productFlagEnabled);
+
+        if (runtimeAvailableProcs != processors) {
+            String error = String.format("Runtime.availableProcessors (%d) is not equal to the expected processor count (%d)", runtimeAvailableProcs, processors);
+            throw new RuntimeException(error);
+        }
     }
 
-    private static void verifyAvailableProcessorsWithEnabledProductFlag(long affinity) {
-        // launch cmd.exe
-        // verify warning exists since at most 1 processor group will be used.
-    }
-
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws IOException {
         // Launch GetProcessorInfo.exe to gather processor counts
         Path nativeGetProcessorInfo = Paths.get(Utils.TEST_NATIVE_PATH)
             .resolve("GetProcessorInfo.exe")
@@ -241,13 +263,11 @@ public class TestAvailableProcessors {
             }
         }
 
-        long affinity = getAffinityForProcessorCount(smallestProcessorGroup);
-
-        // Specify affinity using the start command with the product flag disabled
-        verifyAvailableProcessorsWithDisabledProductFlag(smallestProcessorGroup);
-
-        // Specify affinity using the start command with the product flag enabled
-        verifyAvailableProcessorsWithEnabledProductFlag(smallestProcessorGroup);
+        // Test all valid affinities using the start command
+        for (int processors = smallestProcessorGroup; processors >= 1; processors--) {
+            verifyAvailableProcessorsFromStartAffinity(true, processors);
+            verifyAvailableProcessorsFromStartAffinity(false, processors);
+        }
 
         // Launch java without the start command and with the product flag disabled
         verifyAvailableProcessorsWithDisabledProductFlag(smallestProcessorGroup, largestProcessorGroup);
