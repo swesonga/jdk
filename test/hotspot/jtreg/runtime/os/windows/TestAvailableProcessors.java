@@ -26,15 +26,17 @@
  * @test
  * @bug 6942632
  * @requires os.family == "windows"
- * @summary This test ensures that OpenJDK respects the process affinity
+ * @summary This test verifies that OpenJDK can use all available
+ *          processors on Windows 11/Windows Server 2022 and later.
+ *          It also verifies that OpenJDK respects the process affinity
  *          masks set when launched from the Windows command prompt using
- *          "start /affinity HEXAFFINITY java.exe" when the
- *          UseAllWindowsProcessorGroups flag is enabled.
+ *          "start /affinity HEXAFFINITY java.exe".
  * @requires vm.flagless
  * @library /test/lib
  * @run main/native TestAvailableProcessors
  */
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -42,6 +44,7 @@ import java.util.List;
 
 import jdk.test.lib.Utils;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.process.ProcessTools;
 
 public class TestAvailableProcessors {
 
@@ -51,11 +54,12 @@ public class TestAvailableProcessors {
 
     private static final String runtimeAvailableProcessorsMessage = "Runtime.availableProcessors: ";
     private static final String osVersionMessage = "OS Version: ";
+    private static final String unsupportedPlatformMessage = "The UseAllWindowsProcessorGroups flag is not supported on this Windows version and will be ignored.";
 
-    private List<String> getAvailableProcessorsOutput(boolean productFlagEnabled) {
+    private static OutputAnalyzer getAvailableProcessorsOutput(boolean productFlagEnabled) throws IOException {
         String productFlag = productFlagEnabled ? "-XX:+UseAllWindowsProcessorGroups" : "-XX:-UseAllWindowsProcessorGroups";
 
-        var processBuilder = new createLimitedTestJavaProcessBuilder(
+        ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
             new String[] {productFlag, "GetAvailableProcessors"}
         );
 
@@ -63,14 +67,13 @@ public class TestAvailableProcessors {
         output.shouldHaveExitValue(0);
         output.shouldContain(runtimeAvailableProcessorsMessage);
 
-        return output.stdoutAsLines();
+        return output;
     }
 
-    private int getAvailableProcessors(boolean productFlagEnabled) {
+    private static int getAvailableProcessors(List<String> output) {
         int runtimeAvailableProcs = 0;
 
-        List<String> lines = getAvailableProcessorsOutput(productFlagEnabled);
-        for (var line: lines) {
+        for (var line: output) {
             if (line.startsWith(runtimeAvailableProcessorsMessage)) {
                 String runtimeAvailableProcsStr = line.substring(runtimeAvailableProcessorsMessage.length());
                 System.out.println("Found Runtime.availableProcessors: " + runtimeAvailableProcsStr);
@@ -82,20 +85,29 @@ public class TestAvailableProcessors {
         return runtimeAvailableProcs;
     }
 
-    private void verifyAvailableProcessorsWithDisabledProductFlag(int smallestProcessorGroup, int largestProcessorGroup) {
-        boolean productFlagEnabled = false;
-        int runtimeAvailableProcs = getAvailableProcessors(productFlagEnabled);
+    private static int getAvailableProcessors(boolean productFlagEnabled) throws IOException {
+        OutputAnalyzer output = getAvailableProcessorsOutput(productFlagEnabled);
+        return getAvailableProcessors(output.stdoutAsLines());
+    }
 
+    private static void verifyRuntimeAvailableProcessorsRange(int runtimeAvailableProcs, int smallestProcessorGroup, int largestProcessorGroup) {
         if (runtimeAvailableProcs < smallestProcessorGroup) {
-            String error = String.format("Runtime.availableProcessors ({%d}) must be at least the processor count in smallest processor group ({%d})", runtimeAvailableProcs, smallestProcessorGroup)
-            throw new Exception(error);
+            String error = String.format("Runtime.availableProcessors ({%d}) must be at least the processor count in smallest processor group ({%d})", runtimeAvailableProcs, smallestProcessorGroup);
+            throw new RuntimeException(error);
         } else if (runtimeAvailableProcs > largestProcessorGroup) {
-            String error = String.format("Runtime.availableProcessors ({%d}) cannot exceed the max processor group size for a single processor group ({%d}).", runtimeAvailableProcs, largestProcessorGroup)
-            throw new Exception(error);
+            String error = String.format("Runtime.availableProcessors ({%d}) cannot exceed the max processor group size for a single processor group ({%d}).", runtimeAvailableProcs, largestProcessorGroup);
+            throw new RuntimeException(error);
         }
     }
 
-    private String getWindowsVersion() {
+    private static void verifyAvailableProcessorsWithDisabledProductFlag(int smallestProcessorGroup, int largestProcessorGroup) throws IOException {
+        boolean productFlagEnabled = false;
+        int runtimeAvailableProcs = getAvailableProcessors(productFlagEnabled);
+
+        verifyRuntimeAvailableProcessorsRange(runtimeAvailableProcs, smallestProcessorGroup, largestProcessorGroup);
+    }
+
+    private static String getWindowsVersion() throws IOException {
         String systeminfoPath = "systeminfo.exe";
 
         var processBuilder = new ProcessBuilder(systeminfoPath);
@@ -104,63 +116,72 @@ public class TestAvailableProcessors {
         output.shouldContain(osVersionMessage);
         List<String> lines = output.stdoutAsLines();
 
+        String osVersion = null;
         for (var line: lines) {
             if (line.startsWith(osVersionMessage)) {
-                String osVersionStr = line.substring(osVersionMessage.length()).trim();
-                System.out.println("Found OS version: " + osVersionStr);
-
-                return osVersionStr;
+                osVersion = line.substring(osVersionMessage.length()).trim();
+                break;
             }
         }
+
+        System.out.println("Found OS version: " + osVersion);
+        return osVersion;
     }
 
-    private boolean getSchedulesAllProcessorGroups(boolean isWindowsServer) {
+    private static boolean getSchedulesAllProcessorGroups(boolean isWindowsServer) throws IOException {
         String windowsVer = getWindowsVersion();
-        int major = 0;
-        int minor = 0;
-        int build = 0;
+        String[] parts = windowsVer.split(" ");
+        String[] versionParts = parts[0].split("\\.");
+
+        if (versionParts.length != 3) {
+            throw new RuntimeException("Unexpected Windows version format.");
+        }
+
+        int major = Integer.parseInt(versionParts[0]);
+        int minor = Integer.parseInt(versionParts[1]);
+        int build = Integer.parseInt(versionParts[2]);
 
         if (major > 10) {
             return true;
         }
 
-        if (major == 10) {
-            if (minor > 0) {
-                return true;
-            }
-
-            if (isWindowsServer) {
-                return build >= 20348;
-            } else {
-                return build >= 22000;
-            }
+        if (major < 10) {
+            return false;
         }
 
-        return false;
+        if (minor > 0) {
+            return true;
+        }
+
+        if (isWindowsServer) {
+            return build >= 20348;
+        } else {
+            return build >= 22000;
+        }
     }
 
-    private void verifyAvailableProcessorsWithEnabledProductFlag(boolean isWindowsServer) {
+    private static void verifyAvailableProcessorsWithEnabledProductFlag(boolean schedulesAllProcessorGroups, int totalProcessorCount, int smallestProcessorGroup, int largestProcessorGroup) throws IOException {
         boolean productFlagEnabled = true;
-        int runtimeAvailableProcs = getAvailableProcessors(productFlagEnabled);
 
-        boolean schedulesAllProcessorGroups = getSchedulesAllProcessorGroups(isWindowsServer);
+        OutputAnalyzer output = getAvailableProcessorsOutput(productFlagEnabled);
+        int runtimeAvailableProcs = getAvailableProcessors(output.stdoutAsLines());
 
         if (schedulesAllProcessorGroups) {
-            if (processorGroups > 1) {
-                //
-            } else {
-                
+            if (runtimeAvailableProcs != totalProcessorCount) {
+                String error = String.format("Runtime.availableProcessors ({%d}) is not equal to the expect total processor count ({%d})", runtimeAvailableProcs, totalProcessorCount);
+                throw new RuntimeException(error);
             }
         } else {
-
+            output.shouldContain(unsupportedPlatformMessage);
+            verifyRuntimeAvailableProcessorsRange(runtimeAvailableProcs, smallestProcessorGroup, largestProcessorGroup);
         }
     }
 
-    private void verifyAvailableProcessorsWithDisabledProductFlag(long affinity) {
+    private static void verifyAvailableProcessorsWithDisabledProductFlag(long affinity) {
         // launch cmd.exe
     }
 
-    private void verifyAvailableProcessorsWithEnabledProductFlag(long affinity) {
+    private static void verifyAvailableProcessorsWithEnabledProductFlag(long affinity) {
         // launch cmd.exe
         // verify warning exists since at most 1 processor group will be used.
     }
@@ -204,7 +225,9 @@ public class TestAvailableProcessors {
                     int processorCount = Integer.parseInt(processorCountStr);
                     if (processorCount > largestProcessorGroup) {
                         largestProcessorGroup = processorCount;
-                    } else if (processorCount < smallestProcessorGroup) {
+                    }
+
+                    if (processorCount < smallestProcessorGroup) {
                         smallestProcessorGroup = processorCount;
                     }
 
@@ -218,6 +241,8 @@ public class TestAvailableProcessors {
             }
         }
 
+        long affinity = getAffinityForProcessorCount(smallestProcessorGroup);
+
         // Specify affinity using the start command with the product flag disabled
         verifyAvailableProcessorsWithDisabledProductFlag(smallestProcessorGroup);
 
@@ -228,6 +253,19 @@ public class TestAvailableProcessors {
         verifyAvailableProcessorsWithDisabledProductFlag(smallestProcessorGroup, largestProcessorGroup);
 
         // Launch java without the start command and with the product flag enabled
-        verifyAvailableProcessorsWithEnabledProductFlag(isWindowsServer);
+        boolean schedulesAllProcessorGroups = getSchedulesAllProcessorGroups(isWindowsServer);
+        verifyAvailableProcessorsWithEnabledProductFlag(schedulesAllProcessorGroups, totalProcessorCount, smallestProcessorGroup, largestProcessorGroup);
+    }
+
+    private static long getAffinityForProcessorCount(int processorCount) {
+        if (processorCount < 0 || processorCount > 64) {
+            throw new IllegalArgumentException("processorCount: " + processorCount);
+        }
+
+        if (processorCount == 64) {
+            return 0xffffffffffffffffL;
+        }
+
+        return (1L << processorCount) - 1;
     }
 }
