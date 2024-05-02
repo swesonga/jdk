@@ -33,6 +33,7 @@
  *          "start /affinity HEXAFFINITY java.exe".
  * @requires vm.flagless
  * @library /test/lib
+ * @compile GetAvailableProcessors.java
  * @run main/native TestAvailableProcessors
  */
 
@@ -70,8 +71,9 @@ public class TestAvailableProcessors {
         return output;
     }
 
-    private static int getAvailableProcessors(List<String> output) {
+    private static int getAvailableProcessors(OutputAnalyzer outputAnalyzer) {
         int runtimeAvailableProcs = 0;
+        List<String> output = outputAnalyzer.stdoutAsLines();
 
         for (var line: output) {
             if (line.startsWith(runtimeAvailableProcessorsMessage)) {
@@ -86,8 +88,8 @@ public class TestAvailableProcessors {
     }
 
     private static int getAvailableProcessors(boolean productFlagEnabled) throws IOException {
-        OutputAnalyzer output = getAvailableProcessorsOutput(productFlagEnabled);
-        return getAvailableProcessors(output.stdoutAsLines());
+        OutputAnalyzer outputAnalyzer = getAvailableProcessorsOutput(productFlagEnabled);
+        return getAvailableProcessors(outputAnalyzer);
     }
 
     private static void verifyRuntimeAvailableProcessorsRange(int runtimeAvailableProcs, int smallestProcessorGroup, int largestProcessorGroup) {
@@ -111,9 +113,9 @@ public class TestAvailableProcessors {
         String systeminfoPath = "systeminfo.exe";
 
         var processBuilder = new ProcessBuilder(systeminfoPath);
-        OutputAnalyzer output = new OutputAnalyzer(processBuilder.start());
-        output.shouldHaveExitValue(0);
-        output.shouldContain(osVersionMessage);
+        OutputAnalyzer outputAnalyzer = new OutputAnalyzer(processBuilder.start());
+        outputAnalyzer.shouldHaveExitValue(0);
+        outputAnalyzer.shouldContain(osVersionMessage);
         List<String> lines = output.stdoutAsLines();
 
         String osVersion = null;
@@ -163,8 +165,8 @@ public class TestAvailableProcessors {
     private static void verifyAvailableProcessorsWithEnabledProductFlag(boolean schedulesAllProcessorGroups, int totalProcessorCount, int smallestProcessorGroup, int largestProcessorGroup) throws IOException {
         boolean productFlagEnabled = true;
 
-        OutputAnalyzer output = getAvailableProcessorsOutput(productFlagEnabled);
-        int runtimeAvailableProcs = getAvailableProcessors(output.stdoutAsLines());
+        OutputAnalyzer outputAnalyzer = getAvailableProcessorsOutput(productFlagEnabled);
+        int runtimeAvailableProcs = getAvailableProcessors(outputAnalyzer);
 
         if (schedulesAllProcessorGroups) {
             if (runtimeAvailableProcs != totalProcessorCount) {
@@ -172,7 +174,7 @@ public class TestAvailableProcessors {
                 throw new RuntimeException(error);
             }
         } else {
-            output.shouldContain(unsupportedPlatformMessage);
+            outputAnalyzer.shouldContain(unsupportedPlatformMessage);
             verifyRuntimeAvailableProcessorsRange(runtimeAvailableProcs, smallestProcessorGroup, largestProcessorGroup);
         }
     }
@@ -196,11 +198,11 @@ public class TestAvailableProcessors {
 
         System.out.println("Using command line: " + ProcessTools.getCommandLine(processBuilder));
 
-        var output = new OutputAnalyzer(processBuilder.start());
-        output.shouldHaveExitValue(0);
-        output.shouldContain(runtimeAvailableProcessorsMessage);
+        var outputAnalyzer = new OutputAnalyzer(processBuilder.start());
+        outputAnalyzer.shouldHaveExitValue(0);
+        outputAnalyzer.shouldContain(runtimeAvailableProcessorsMessage);
 
-        int runtimeAvailableProcs = getAvailableProcessors(productFlagEnabled);
+        int runtimeAvailableProcs = getAvailableProcessors(outputAnalyzer);
 
         if (runtimeAvailableProcs != processors) {
             String error = String.format("Runtime.availableProcessors (%d) is not equal to the expected processor count (%d)", runtimeAvailableProcs, processors);
@@ -215,11 +217,11 @@ public class TestAvailableProcessors {
             .toAbsolutePath();
 
         var processBuilder = new ProcessBuilder(nativeGetProcessorInfo.toString());
-        OutputAnalyzer output = new OutputAnalyzer(processBuilder.start());
-        output.shouldHaveExitValue(0);
-        output.shouldContain(totalProcessorCountMessage);
-        output.shouldContain(processorCountPerGroupMessage);
-        output.shouldContain(isWindowsServerMessage);
+        var outputAnalyzer= new OutputAnalyzer(processBuilder.start());
+        outputAnalyzer.shouldHaveExitValue(0);
+        outputAnalyzer.shouldContain(totalProcessorCountMessage);
+        outputAnalyzer.shouldContain(processorCountPerGroupMessage);
+        outputAnalyzer.shouldContain(isWindowsServerMessage);
 
         int totalProcessorCount = 0;
         int smallestProcessorGroup = Integer.MAX_VALUE;
@@ -227,7 +229,7 @@ public class TestAvailableProcessors {
         int processorGroups = 0;
         boolean isWindowsServer = false;
 
-        List<String> lines = output.stdoutAsLines();
+        List<String> lines = outputAnalyzer.stdoutAsLines();
 
         for (var line: lines) {
             if (line.startsWith(totalProcessorCountMessage)) {
