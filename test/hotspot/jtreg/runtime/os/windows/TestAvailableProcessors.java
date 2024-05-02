@@ -131,8 +131,6 @@ public class TestAvailableProcessors {
         for (var line: output) {
             if (line.startsWith(runtimeAvailableProcessorsMessage)) {
                 String runtimeAvailableProcsStr = line.substring(runtimeAvailableProcessorsMessage.length());
-                System.out.println("Found Runtime.availableProcessors: " + runtimeAvailableProcsStr);
-
                 runtimeAvailableProcs = Integer.parseInt(runtimeAvailableProcsStr);
             }
         }
@@ -196,8 +194,6 @@ public class TestAvailableProcessors {
         args.add("start /wait /b /affinity " + String.format("%016X", affinity) + " " + javaCommandLine);
         processBuilder = new ProcessBuilder(args);
 
-        System.out.println("Using command line: " + ProcessTools.getCommandLine(processBuilder));
-
         var outputAnalyzer = new OutputAnalyzer(processBuilder.start());
         outputAnalyzer.shouldHaveExitValue(0);
         outputAnalyzer.shouldContain(runtimeAvailableProcessorsMessage);
@@ -234,18 +230,12 @@ public class TestAvailableProcessors {
         for (var line: lines) {
             if (line.startsWith(totalProcessorCountMessage)) {
                 String totalProcessorCountStr = line.substring(totalProcessorCountMessage.length());
-                System.out.println("Found total processor count: " + totalProcessorCountStr);
-
                 totalProcessorCount = Integer.parseInt(totalProcessorCountStr);
             } else if (line.startsWith(processorCountPerGroupMessage)) {
                 String processorCountPerGroupStr = line.substring(processorCountPerGroupMessage.length());
-                System.out.println("Found processor counts for groups: " + processorCountPerGroupStr);
-
                 String[] processorCountsPerGroup = processorCountPerGroupStr.split(",");
 
                 for (var processorCountStr: processorCountsPerGroup) {
-                    System.out.println("Found a processor group of size " + processorCountStr);
-
                     int processorCount = Integer.parseInt(processorCountStr);
                     if (processorCount > largestProcessorGroup) {
                         largestProcessorGroup = processorCount;
@@ -259,8 +249,6 @@ public class TestAvailableProcessors {
                 }
             } else if (line.startsWith(isWindowsServerMessage)) {
                 String isWindowsServerStr = line.substring(isWindowsServerMessage.length());
-                System.out.println("Found IsWindowsServer: " + isWindowsServerStr);
-
                 isWindowsServer = Integer.parseInt(isWindowsServerStr) > 0;
             }
         }
