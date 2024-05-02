@@ -39,6 +39,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import jdk.test.lib.Utils;
 import jdk.test.lib.process.OutputAnalyzer;
@@ -143,22 +145,15 @@ public class TestAvailableProcessors {
         return getAvailableProcessors(outputAnalyzer);
     }
 
-    private static void verifyRuntimeAvailableProcessorsRange(int runtimeAvailableProcs, int smallestProcessorGroup, int largestProcessorGroup) {
-        String error = String.format("Runtime.availableProcessors (%d) must be at least the processor count in smallest processor group (%d)", runtimeAvailableProcs, smallestProcessorGroup);
-        Assert.assertTrue(runtimeAvailableProcs >= smallestProcessorGroup, error);
-
-        error = String.format("Runtime.availableProcessors (%d) cannot exceed the max processor group size for a single processor group (%d).", runtimeAvailableProcs, largestProcessorGroup);
-        Assert.assertTrue(runtimeAvailableProcs <= largestProcessorGroup, error);
-    }
-
-    private static void verifyAvailableProcessorsWithDisabledProductFlag(int smallestProcessorGroup, int largestProcessorGroup) throws IOException {
+    private static void verifyAvailableProcessorsWithDisabledProductFlag(Set<Integer> processorGroupSizes) throws IOException {
         boolean productFlagEnabled = false;
         int runtimeAvailableProcs = getAvailableProcessors(productFlagEnabled);
 
-        verifyRuntimeAvailableProcessorsRange(runtimeAvailableProcs, smallestProcessorGroup, largestProcessorGroup);
+        String error = String.format("Runtime.availableProcessors (%d) is not a valid processor group size on this machine.", runtimeAvailableProcs);
+        Assert.assertTrue(processorGroupSizes.contains(runtimeAvailableProcs), error);
     }
 
-    private static void verifyAvailableProcessorsWithEnabledProductFlag(boolean schedulesAllProcessorGroups, int totalProcessorCount, int smallestProcessorGroup, int largestProcessorGroup) throws IOException {
+    private static void verifyAvailableProcessorsWithEnabledProductFlag(boolean schedulesAllProcessorGroups, int totalProcessorCount, Set<Integer> processorGroupSizes) throws IOException {
         boolean productFlagEnabled = true;
 
         OutputAnalyzer outputAnalyzer = getAvailableProcessorsOutput(productFlagEnabled);
@@ -169,7 +164,9 @@ public class TestAvailableProcessors {
             Assert.assertEquals(runtimeAvailableProcs, totalProcessorCount, error);
         } else {
             outputAnalyzer.shouldContain(unsupportedPlatformMessage);
-            verifyRuntimeAvailableProcessorsRange(runtimeAvailableProcs, smallestProcessorGroup, largestProcessorGroup);
+
+            String error = String.format("Runtime.availableProcessors (%d) is not a valid processor group size on this machine.", runtimeAvailableProcs);
+            Assert.assertTrue(processorGroupSizes.contains(runtimeAvailableProcs), error);
         }
     }
 
@@ -188,10 +185,8 @@ public class TestAvailableProcessors {
         outputAnalyzer.shouldContain(isWindowsServerMessage);
 
         int totalProcessorCount = 0;
-        int smallestProcessorGroup = Integer.MAX_VALUE;
-        int largestProcessorGroup = 0;
-        int processorGroups = 0;
         boolean isWindowsServer = false;
+        var processorGroupSizes = new HashSet<Integer>();
 
         List<String> lines = outputAnalyzer.stdoutAsLines();
 
@@ -205,15 +200,7 @@ public class TestAvailableProcessors {
 
                 for (var processorCountStr: processorCountsPerGroup) {
                     int processorCount = Integer.parseInt(processorCountStr);
-                    if (processorCount > largestProcessorGroup) {
-                        largestProcessorGroup = processorCount;
-                    }
-
-                    if (processorCount < smallestProcessorGroup) {
-                        smallestProcessorGroup = processorCount;
-                    }
-
-                    processorGroups++;
+                    processorGroupSizes.add(processorCount);
                 }
             } else if (line.startsWith(isWindowsServerMessage)) {
                 String isWindowsServerStr = line.substring(isWindowsServerMessage.length());
@@ -222,10 +209,10 @@ public class TestAvailableProcessors {
         }
 
         // Launch java without the start command and with the product flag disabled
-        verifyAvailableProcessorsWithDisabledProductFlag(smallestProcessorGroup, largestProcessorGroup);
+        verifyAvailableProcessorsWithDisabledProductFlag(processorGroupSizes);
 
         // Launch java without the start command and with the product flag enabled
         boolean schedulesAllProcessorGroups = getSchedulesAllProcessorGroups(isWindowsServer);
-        verifyAvailableProcessorsWithEnabledProductFlag(schedulesAllProcessorGroups, totalProcessorCount, smallestProcessorGroup, largestProcessorGroup);
+        verifyAvailableProcessorsWithEnabledProductFlag(schedulesAllProcessorGroups, totalProcessorCount, processorGroupSizes);
     }
 }
