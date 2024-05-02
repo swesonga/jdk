@@ -57,58 +57,6 @@ public class TestAvailableProcessors {
     private static final String osVersionMessage = "OS Version: ";
     private static final String unsupportedPlatformMessage = "The UseAllWindowsProcessorGroups flag is not supported on this Windows version and will be ignored.";
 
-    private static OutputAnalyzer getAvailableProcessorsOutput(boolean productFlagEnabled) throws IOException {
-        String productFlag = productFlagEnabled ? "-XX:+UseAllWindowsProcessorGroups" : "-XX:-UseAllWindowsProcessorGroups";
-
-        ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
-            new String[] {productFlag, "GetAvailableProcessors"}
-        );
-
-        var output = new OutputAnalyzer(processBuilder.start());
-        output.shouldHaveExitValue(0);
-        output.shouldContain(runtimeAvailableProcessorsMessage);
-
-        return output;
-    }
-
-    private static int getAvailableProcessors(OutputAnalyzer outputAnalyzer) {
-        int runtimeAvailableProcs = 0;
-        List<String> output = outputAnalyzer.stdoutAsLines();
-
-        for (var line: output) {
-            if (line.startsWith(runtimeAvailableProcessorsMessage)) {
-                String runtimeAvailableProcsStr = line.substring(runtimeAvailableProcessorsMessage.length());
-                System.out.println("Found Runtime.availableProcessors: " + runtimeAvailableProcsStr);
-
-                runtimeAvailableProcs = Integer.parseInt(runtimeAvailableProcsStr);
-            }
-        }
-
-        return runtimeAvailableProcs;
-    }
-
-    private static int getAvailableProcessors(boolean productFlagEnabled) throws IOException {
-        OutputAnalyzer outputAnalyzer = getAvailableProcessorsOutput(productFlagEnabled);
-        return getAvailableProcessors(outputAnalyzer);
-    }
-
-    private static void verifyRuntimeAvailableProcessorsRange(int runtimeAvailableProcs, int smallestProcessorGroup, int largestProcessorGroup) {
-        if (runtimeAvailableProcs < smallestProcessorGroup) {
-            String error = String.format("Runtime.availableProcessors (%d) must be at least the processor count in smallest processor group (%d)", runtimeAvailableProcs, smallestProcessorGroup);
-            throw new RuntimeException(error);
-        } else if (runtimeAvailableProcs > largestProcessorGroup) {
-            String error = String.format("Runtime.availableProcessors (%d) cannot exceed the max processor group size for a single processor group (%d).", runtimeAvailableProcs, largestProcessorGroup);
-            throw new RuntimeException(error);
-        }
-    }
-
-    private static void verifyAvailableProcessorsWithDisabledProductFlag(int smallestProcessorGroup, int largestProcessorGroup) throws IOException {
-        boolean productFlagEnabled = false;
-        int runtimeAvailableProcs = getAvailableProcessors(productFlagEnabled);
-
-        verifyRuntimeAvailableProcessorsRange(runtimeAvailableProcs, smallestProcessorGroup, largestProcessorGroup);
-    }
-
     private static String getWindowsVersion() throws IOException {
         String systeminfoPath = "systeminfo.exe";
 
@@ -160,6 +108,58 @@ public class TestAvailableProcessors {
         } else {
             return build >= 22000;
         }
+    }
+
+    private static OutputAnalyzer getAvailableProcessorsOutput(boolean productFlagEnabled) throws IOException {
+        String productFlag = productFlagEnabled ? "-XX:+UseAllWindowsProcessorGroups" : "-XX:-UseAllWindowsProcessorGroups";
+
+        ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
+            new String[] {productFlag, "GetAvailableProcessors"}
+        );
+
+        var output = new OutputAnalyzer(processBuilder.start());
+        output.shouldHaveExitValue(0);
+        output.shouldContain(runtimeAvailableProcessorsMessage);
+
+        return output;
+    }
+
+    private static int getAvailableProcessors(OutputAnalyzer outputAnalyzer) {
+        int runtimeAvailableProcs = 0;
+        List<String> output = outputAnalyzer.stdoutAsLines();
+
+        for (var line: output) {
+            if (line.startsWith(runtimeAvailableProcessorsMessage)) {
+                String runtimeAvailableProcsStr = line.substring(runtimeAvailableProcessorsMessage.length());
+                System.out.println("Found Runtime.availableProcessors: " + runtimeAvailableProcsStr);
+
+                runtimeAvailableProcs = Integer.parseInt(runtimeAvailableProcsStr);
+            }
+        }
+
+        return runtimeAvailableProcs;
+    }
+
+    private static int getAvailableProcessors(boolean productFlagEnabled) throws IOException {
+        OutputAnalyzer outputAnalyzer = getAvailableProcessorsOutput(productFlagEnabled);
+        return getAvailableProcessors(outputAnalyzer);
+    }
+
+    private static void verifyRuntimeAvailableProcessorsRange(int runtimeAvailableProcs, int smallestProcessorGroup, int largestProcessorGroup) {
+        if (runtimeAvailableProcs < smallestProcessorGroup) {
+            String error = String.format("Runtime.availableProcessors (%d) must be at least the processor count in smallest processor group (%d)", runtimeAvailableProcs, smallestProcessorGroup);
+            throw new RuntimeException(error);
+        } else if (runtimeAvailableProcs > largestProcessorGroup) {
+            String error = String.format("Runtime.availableProcessors (%d) cannot exceed the max processor group size for a single processor group (%d).", runtimeAvailableProcs, largestProcessorGroup);
+            throw new RuntimeException(error);
+        }
+    }
+
+    private static void verifyAvailableProcessorsWithDisabledProductFlag(int smallestProcessorGroup, int largestProcessorGroup) throws IOException {
+        boolean productFlagEnabled = false;
+        int runtimeAvailableProcs = getAvailableProcessors(productFlagEnabled);
+
+        verifyRuntimeAvailableProcessorsRange(runtimeAvailableProcs, smallestProcessorGroup, largestProcessorGroup);
     }
 
     private static void verifyAvailableProcessorsWithEnabledProductFlag(boolean schedulesAllProcessorGroups, int totalProcessorCount, int smallestProcessorGroup, int largestProcessorGroup) throws IOException {
