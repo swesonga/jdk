@@ -31,7 +31,7 @@
  * @requires vm.flagless
  * @library /test/lib
  * @compile GetAvailableProcessors.java
- * @run main/native TestAvailableProcessors
+ * @run testng TestAvailableProcessors
  */
 
 import java.io.IOException;
@@ -43,6 +43,9 @@ import java.util.List;
 import jdk.test.lib.Utils;
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 public class TestAvailableProcessors {
 
@@ -141,13 +144,11 @@ public class TestAvailableProcessors {
     }
 
     private static void verifyRuntimeAvailableProcessorsRange(int runtimeAvailableProcs, int smallestProcessorGroup, int largestProcessorGroup) {
-        if (runtimeAvailableProcs < smallestProcessorGroup) {
-            String error = String.format("Runtime.availableProcessors (%d) must be at least the processor count in smallest processor group (%d)", runtimeAvailableProcs, smallestProcessorGroup);
-            throw new RuntimeException(error);
-        } else if (runtimeAvailableProcs > largestProcessorGroup) {
-            String error = String.format("Runtime.availableProcessors (%d) cannot exceed the max processor group size for a single processor group (%d).", runtimeAvailableProcs, largestProcessorGroup);
-            throw new RuntimeException(error);
-        }
+        String error = String.format("Runtime.availableProcessors (%d) must be at least the processor count in smallest processor group (%d)", runtimeAvailableProcs, smallestProcessorGroup);
+        Assert.assertTrue(runtimeAvailableProcs >= smallestProcessorGroup, error);
+
+        error = String.format("Runtime.availableProcessors (%d) cannot exceed the max processor group size for a single processor group (%d).", runtimeAvailableProcs, largestProcessorGroup);
+        Assert.assertTrue(runtimeAvailableProcs <= largestProcessorGroup, error);
     }
 
     private static void verifyAvailableProcessorsWithDisabledProductFlag(int smallestProcessorGroup, int largestProcessorGroup) throws IOException {
@@ -164,17 +165,16 @@ public class TestAvailableProcessors {
         int runtimeAvailableProcs = getAvailableProcessors(outputAnalyzer);
 
         if (schedulesAllProcessorGroups) {
-            if (runtimeAvailableProcs != totalProcessorCount) {
-                String error = String.format("Runtime.availableProcessors (%d) is not equal to the expected total processor count (%d)", runtimeAvailableProcs, totalProcessorCount);
-                throw new RuntimeException(error);
-            }
+            String error = String.format("Runtime.availableProcessors (%d) is not equal to the expected total processor count (%d)", runtimeAvailableProcs, totalProcessorCount);
+            Assert.assertEquals(runtimeAvailableProcs, totalProcessorCount, error);
         } else {
             outputAnalyzer.shouldContain(unsupportedPlatformMessage);
             verifyRuntimeAvailableProcessorsRange(runtimeAvailableProcs, smallestProcessorGroup, largestProcessorGroup);
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    @Test
+    private static void testProcessorAvailability() throws IOException {
         // Launch GetProcessorInfo.exe to gather processor counts
         Path nativeGetProcessorInfo = Paths.get(Utils.TEST_NATIVE_PATH)
             .resolve("GetProcessorInfo.exe")
