@@ -28,6 +28,9 @@
  * @requires os.family == "windows"
  * @summary This test verifies that OpenJDK can use all available
  *          processors on Windows 11/Windows Server 2022 and later.
+ *          It also verifies that OpenJDK respects the process affinity
+ *          masks set when launched from the Windows command prompt using
+ *          "start /affinity HEXAFFINITY java.exe".
  * @requires vm.flagless
  * @library /test/lib
  * @compile GetAvailableProcessors.java
@@ -170,6 +173,33 @@ public class TestAvailableProcessors {
         }
     }
 
+    private static void verifyAvailableProcessorsFromStartAffinity(boolean productFlagEnabled, int processors) throws IOException {
+        long affinity = getAffinityForProcessorCount(processors);
+
+        String productFlag = productFlagEnabled ? "-XX:+UseAllWindowsProcessorGroups" : "-XX:-UseAllWindowsProcessorGroups";
+
+        ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
+            new String[] {productFlag, "GetAvailableProcessors"}
+        );
+
+        String javaCommandLine = ProcessTools.getCommandLine(processBuilder);
+
+        List<String> args = new ArrayList<String>();
+        args.add("cmd.exe");
+        args.add("/c");
+        args.add("start /wait /b /affinity " + String.format("%016X", affinity) + " " + javaCommandLine);
+        processBuilder = new ProcessBuilder(args);
+
+        var outputAnalyzer = new OutputAnalyzer(processBuilder.start());
+        outputAnalyzer.shouldHaveExitValue(0);
+        outputAnalyzer.shouldContain(runtimeAvailableProcessorsMessage);
+
+        int runtimeAvailableProcs = getAvailableProcessors(outputAnalyzer);
+
+        String error = String.format("Runtime.availableProcessors (%d) is not equal to the expected processor count (%d)", runtimeAvailableProcs, processors);
+        Assert.assertEquals(runtimeAvailableProcs, processors, error);
+    }
+
     @Test
     private static void testProcessorAvailability() throws IOException {
         // Launch GetProcessorInfo.exe to gather processor counts
@@ -185,6 +215,7 @@ public class TestAvailableProcessors {
         outputAnalyzer.shouldContain(isWindowsServerMessage);
 
         int totalProcessorCount = 0;
+        int smallestProcessorGroup = Integer.MAX_VALUE;
         boolean isWindowsServer = false;
         var processorGroupSizes = new HashSet<Integer>();
 
@@ -201,11 +232,21 @@ public class TestAvailableProcessors {
                 for (var processorCountStr: processorCountsPerGroup) {
                     int processorCount = Integer.parseInt(processorCountStr);
                     processorGroupSizes.add(processorCount);
+
+                    if (processorCount < smallestProcessorGroup) {
+                        smallestProcessorGroup = processorCount;
+                    }
                 }
             } else if (line.startsWith(isWindowsServerMessage)) {
                 String isWindowsServerStr = line.substring(isWindowsServerMessage.length());
                 isWindowsServer = Integer.parseInt(isWindowsServerStr) > 0;
             }
+        }
+
+        // Test all valid affinities using the start command
+        for (int processors = smallestProcessorGroup; processors >= 1; processors--) {
+            verifyAvailableProcessorsFromStartAffinity(true, processors);
+            verifyAvailableProcessorsFromStartAffinity(false, processors);
         }
 
         // Launch java without the start command and with the product flag disabled
@@ -214,5 +255,17 @@ public class TestAvailableProcessors {
         // Launch java without the start command and with the product flag enabled
         boolean schedulesAllProcessorGroups = getSchedulesAllProcessorGroups(isWindowsServer);
         verifyAvailableProcessorsWithEnabledProductFlag(schedulesAllProcessorGroups, totalProcessorCount, processorGroupSizes);
+    }
+
+    private static long getAffinityForProcessorCount(int processorCount) {
+        if (processorCount < 0 || processorCount > 64) {
+            throw new IllegalArgumentException("processorCount: " + processorCount);
+        }
+
+        if (processorCount == 64) {
+            return 0xffffffffffffffffL;
+        }
+
+        return (1L << processorCount) - 1;
     }
 }
