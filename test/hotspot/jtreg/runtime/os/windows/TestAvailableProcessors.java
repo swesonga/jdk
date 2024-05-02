@@ -64,7 +64,7 @@ public class TestAvailableProcessors {
         OutputAnalyzer outputAnalyzer = new OutputAnalyzer(processBuilder.start());
         outputAnalyzer.shouldHaveExitValue(0);
         outputAnalyzer.shouldContain(osVersionMessage);
-        List<String> lines = output.stdoutAsLines();
+        List<String> lines = outputAnalyzer.stdoutAsLines();
 
         String osVersion = null;
         for (var line: lines) {
