@@ -22,8 +22,19 @@
  *
  */
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 public class GetAvailableProcessors {
-  public static void main(String[] args) {
-    System.out.println("Runtime.availableProcessors: " + Runtime.getRuntime().availableProcessors());
+  public static void main(String[] args) throws IOException {
+    String message = "Runtime.availableProcessors: " + Runtime.getRuntime().availableProcessors();
+    System.out.println(message);
+
+    if (args.length > 0) {
+      Path filePath = Path.of(args[0]);
+      Files.writeString(filePath, message, StandardCharsets.UTF_8);
+    }
   }
 }

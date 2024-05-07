@@ -38,6 +38,8 @@
  */
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -178,8 +180,12 @@ public class TestAvailableProcessors {
 
         String productFlag = productFlagEnabled ? "-XX:+UseAllWindowsProcessorGroups" : "-XX:-UseAllWindowsProcessorGroups";
 
+        // Write output of GetAvailableProcessors to a temporary file
+        Path outputFile = Files.createTempFile(Paths.get("."), TestAvailableProcessors.class.getSimpleName(), ".tmp");
+        String outputFilePath = outputFile.toString();
+
         ProcessBuilder processBuilder = ProcessTools.createLimitedTestJavaProcessBuilder(
-            new String[] {productFlag, "GetAvailableProcessors"}
+            new String[] {productFlag, "GetAvailableProcessors", outputFilePath}
         );
 
         String javaCommandLine = ProcessTools.getCommandLine(processBuilder);
@@ -192,6 +198,13 @@ public class TestAvailableProcessors {
 
         var outputAnalyzer = new OutputAnalyzer(processBuilder.start());
         outputAnalyzer.shouldHaveExitValue(0);
+
+        // Read the output of GetAvailableProcessors from the temporary file
+        byte[] bytesFromFile = Files.readAllBytes(outputFile);
+        String fileContent = new String(bytesFromFile, StandardCharsets.UTF_8);
+        System.out.println("GetAvailableProcessors output: " + fileContent);
+
+        outputAnalyzer = new OutputAnalyzer(fileContent);
         outputAnalyzer.shouldContain(runtimeAvailableProcessorsMessage);
 
         int runtimeAvailableProcs = getAvailableProcessors(outputAnalyzer);
