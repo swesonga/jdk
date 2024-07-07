@@ -662,7 +662,8 @@
   /* VMRegImpl (NOTE: incomplete) */                                                                                                 \
   /*********************************/                                                                                                \
                                                                                                                                      \
-     static_field(VMRegImpl,                   regName[0],                                    const char*)                           \
+  NOT_ZERO(                                                                                                                          \
+     static_field(VMRegImpl,                   regName[0],                                    const char*))                          \
      static_field(VMRegImpl,                   stack0,                                        VMReg)                                 \
                                                                                                                                      \
   /************/                                                                                                                     \
