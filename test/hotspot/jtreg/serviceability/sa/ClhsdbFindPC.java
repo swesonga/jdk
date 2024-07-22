@@ -106,6 +106,8 @@ public class ClhsdbFindPC {
             System.out.println("with pid " + theApp.getPid());
 
             if (withCore) {
+                System.out.println("LingeredApp exited with code " + theApp.getOutput().getExitValue() + " - has pid " + theApp.getPid());
+                System.out.println("LingeredApp exited with stderr " + theApp.getOutput().getStderr());
                 String crashOutput = theApp.getOutput().getStdout();
                 // Get the core file name if we are debugging a core instead of live process
                 coreFileName = CoreUtils.getCoreFileLocation(crashOutput, theApp.getPid());

@@ -273,6 +273,7 @@ public class LingeredApp {
             // Check for crash or lock modification now, and immediately after sleeping for spinDelay each loop.
             if (!appProcess.isAlive()) {
                 if (forceCrash) {
+                    System.out.println("App exited with code " + appProcess.exitValue());
                     return; // This is expected. Just return.
                 } else {
                     throw new IOException("App exited unexpectedly with " + appProcess.exitValue());
@@ -315,7 +316,9 @@ public class LingeredApp {
         if (forceCrash) {
             cmd.add("-XX:+CreateCoredumpOnCrash");
             // We need to find libLingeredApp.so for the crash() native method
-            cmd.add("-Djava.library.path=" + System.getProperty("java.library.path"));
+            String nativePath = Paths.get(Utils.TEST_NATIVE_PATH).toAbsolutePath().toString();
+            cmd.add("-Djava.library.path=" + nativePath);
+            //cmd.add("-Djava.library.path=" + System.getProperty("java.library.path"));
         }
 
         if (useDefaultClasspath()) {
@@ -622,7 +625,9 @@ public class LingeredApp {
                 startSteadyStateThread(steadyStateObj);
                 if (forceCrash) {
                     System.loadLibrary("LingeredApp"); // location of native crash() method
+                    System.out.println("Calling native crash method");
                     crash();
+                    System.out.println("Native crash method completed");
                 }
                 while (Files.exists(path)) {
                     // Touch the lock to indicate our readiness
