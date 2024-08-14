@@ -416,7 +416,7 @@ size_t DefNewGeneration::adjust_for_thread_increase(size_t new_size_candidate,
   return desired_new_size;
 }
 
-void DefNewGeneration::compute_new_size() {
+void DefNewGeneration::compute_new_size(int gc_overhead) {
   // This is called after a GC that includes the old generation, so from-space
   // will normally be empty.
   // Note that we check both spaces, since if scavenge failed they revert roles.

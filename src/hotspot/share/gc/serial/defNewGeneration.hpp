@@ -223,7 +223,7 @@ class DefNewGeneration: public Generation {
   void reset_scratch();
 
   // GC support
-  void compute_new_size();
+  void compute_new_size(int gc_overhead);
 
   bool collect(bool clear_all_soft_refs);
 

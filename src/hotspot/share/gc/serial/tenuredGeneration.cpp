@@ -144,7 +144,7 @@ void TenuredGeneration::shrink(size_t bytes) {
                       name(), old_mem_size/K, new_mem_size/K);
 }
 
-void TenuredGeneration::compute_new_size_inner() {
+void TenuredGeneration::compute_new_size_inner(int gc_overhead) {
   assert(_shrink_factor <= 100, "invalid shrink factor");
   size_t current_shrink_factor = _shrink_factor;
   if (ShrinkHeapInSteps) {
@@ -344,14 +344,14 @@ void TenuredGeneration::gc_prologue() {
   _used_at_prologue = used();
 }
 
-void TenuredGeneration::compute_new_size() {
+void TenuredGeneration::compute_new_size(int gc_overhead) {
   assert_locked_or_safepoint(Heap_lock);
 
   // Compute some numbers about the state of the heap.
   const size_t used_after_gc = used();
   const size_t capacity_after_gc = capacity();
 
-  compute_new_size_inner();
+  compute_new_size_inner(gc_overhead);
 
   assert(used() == used_after_gc && used_after_gc <= capacity(),
          "used: " SIZE_FORMAT " used_after_gc: " SIZE_FORMAT

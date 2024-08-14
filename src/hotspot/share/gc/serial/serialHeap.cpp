@@ -442,6 +442,20 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
   if (!is_young_gc_safe()) {
     return false;
   }
+
+  // Ticks start, end;
+  double starting_real_time = 0, starting_user_time = 0, starting_system_time = 0;
+  bool starting_times_valid = false;
+  int gc_overhead = -1;
+  if (UseSerialGCOverheadErgonomics) {
+    starting_times_valid = os::getTimesSecs(&starting_real_time, &starting_user_time, &starting_system_time);
+    if (!starting_times_valid) {
+      log_warning(gc, cpu)("Error getting initial time values for GC overhead calculation");
+      // TODO: should we fall back to timestamps?
+    }
+    // start.stamp();
+  }
+
   IsSTWGCActiveMark gc_active_mark;
   SvcGCMarker sgcm(SvcGCMarker::MINOR);
   GCIdMark gc_id_mark;
@@ -476,7 +490,32 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
     Universe::verify("After GC");
   }
 
-  _young_gen->compute_new_size();
+  if (UseSerialGCOverheadErgonomics) {
+    // end.stamp();
+    if (!os::is_thread_cpu_time_supported()) {
+      assert(os::is_thread_cpu_time_supported(), "os::is_thread_cpu_time_supported() must be true");
+      // Should we disable UseSerialGCOverheadErgonomics?
+    }
+
+    if (starting_times_valid) {
+      double real_time, user_time, system_time;
+      bool valid = os::getTimesSecs(&real_time, &user_time, &system_time);
+      if (!valid) {
+        user_time -= starting_user_time;
+        system_time -= starting_system_time;
+        real_time -= starting_real_time;
+
+        // How do noisy neighbors affect this calculation?
+        // Which rounding is used when casting double to int?
+        gc_overhead = (int)(user_time * 100.0 / real_time);
+        log_info(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
+      } else {
+        log_warning(gc, cpu)("Error getting final time values for GC overhead calculation");
+      }
+    }
+  }
+
+  _young_gen->compute_new_size(gc_overhead);
 
   print_heap_change(pre_gc_values);
 
@@ -709,6 +748,19 @@ void SerialHeap::do_full_collection(bool clear_all_soft_refs) {
 }
 
 void SerialHeap::do_full_collection_no_gc_locker(bool clear_all_soft_refs) {
+  // Ticks start, end;
+  double starting_real_time = 0, starting_user_time = 0, starting_system_time = 0;
+  bool starting_times_valid = false;
+  int gc_overhead = -1;
+  if (UseSerialGCOverheadErgonomics) {
+    starting_times_valid = os::getTimesSecs(&starting_real_time, &starting_user_time, &starting_system_time);
+    if (!starting_times_valid) {
+      log_warning(gc, cpu)("Error getting initial time values for GC overhead calculation");
+      // TODO: should we fall back to timestamps?
+    }
+    // start.stamp();
+  }
+
   IsSTWGCActiveMark gc_active_mark;
   SvcGCMarker sgcm(SvcGCMarker::FULL);
   GCIdMark gc_id_mark;
@@ -752,9 +804,33 @@ void SerialHeap::do_full_collection_no_gc_locker(bool clear_all_soft_refs) {
   CodeCache::arm_all_nmethods();
   COMPILER2_OR_JVMCI_PRESENT(DerivedPointerTable::update_pointers());
 
+  if (UseSerialGCOverheadErgonomics) {
+    // end.stamp();
+    if (!os::is_thread_cpu_time_supported()) {
+      assert(os::is_thread_cpu_time_supported(), "os::is_thread_cpu_time_supported() must be true");
+      // TODO: Should we disable UseSerialGCOverheadErgonomics?
+    }
+
+    if (starting_times_valid) {
+      double real_time, user_time, system_time;
+      bool valid = os::getTimesSecs(&real_time, &user_time, &system_time);
+      if (!valid) {
+        user_time -= starting_user_time;
+        system_time -= starting_system_time;
+        real_time -= starting_real_time;
+        gc_overhead = (int)(user_time * 100.0 / real_time);
+        log_info(gc, cpu)("GC Overhead (Tenured): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
+      } else {
+        log_warning(gc, cpu)("Error getting final time values for GC overhead calculation");
+      }
+    }
+  }
+
   // Adjust generation sizes.
-  _old_gen->compute_new_size();
-  _young_gen->compute_new_size();
+  _old_gen->compute_new_size(gc_overhead);
+  _young_gen->compute_new_size(gc_overhead);
+
+  // TODO: Shouldn't all this other work be included in GC overhead calculation?
 
   // Delete metaspaces for unloaded class loaders and clean up loader_data graph
   ClassLoaderDataGraph::purge(/*at_safepoint*/true);
