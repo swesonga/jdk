@@ -144,7 +144,20 @@ void TenuredGeneration::shrink(size_t bytes) {
                       name(), old_mem_size/K, new_mem_size/K);
 }
 
-void TenuredGeneration::compute_new_size_inner(int gc_overhead) {
+void TenuredGeneration::compute_new_size_for_target_gc_overhead_inner(int gc_overhead) {
+  assert(gc_overhead >= 0, "Computed GC overhead must not be negative");
+  assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100");
+
+  if (gc_overhead < 0 || gc_overhead > 100) {
+    log_warning(gc)("Invalid computed GC overhead value. Falling back to default heap size computation.");
+    compute_new_size_inner();
+    return;
+  }
+
+  //
+}
+
+void TenuredGeneration::compute_new_size_inner() {
   assert(_shrink_factor <= 100, "invalid shrink factor");
   size_t current_shrink_factor = _shrink_factor;
   if (ShrinkHeapInSteps) {
@@ -344,14 +357,28 @@ void TenuredGeneration::gc_prologue() {
   _used_at_prologue = used();
 }
 
-void TenuredGeneration::compute_new_size(int gc_overhead) {
+void TenuredGeneration::compute_new_size() {
   assert_locked_or_safepoint(Heap_lock);
 
   // Compute some numbers about the state of the heap.
   const size_t used_after_gc = used();
   const size_t capacity_after_gc = capacity();
 
-  compute_new_size_inner(gc_overhead);
+  compute_new_size_inner();
+
+  assert(used() == used_after_gc && used_after_gc <= capacity(),
+         "used: " SIZE_FORMAT " used_after_gc: " SIZE_FORMAT
+         " capacity: " SIZE_FORMAT, used(), used_after_gc, capacity());
+}
+
+void TenuredGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) {
+  assert_locked_or_safepoint(Heap_lock);
+
+  // Compute some numbers about the state of the heap.
+  const size_t used_after_gc = used();
+  const size_t capacity_after_gc = capacity();
+
+  compute_new_size_for_target_gc_overhead_inner(gc_overhead);
 
   assert(used() == used_after_gc && used_after_gc <= capacity(),
          "used: " SIZE_FORMAT " used_after_gc: " SIZE_FORMAT

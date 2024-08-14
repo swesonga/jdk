@@ -515,7 +515,11 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
     }
   }
 
-  _young_gen->compute_new_size(gc_overhead);
+  if (UseSerialGCOverheadErgonomics) {
+    _young_gen->compute_new_size_for_target_gc_overhead(gc_overhead);
+  } else {
+    _young_gen->compute_new_size();
+  }
 
   print_heap_change(pre_gc_values);
 
@@ -827,8 +831,13 @@ void SerialHeap::do_full_collection_no_gc_locker(bool clear_all_soft_refs) {
   }
 
   // Adjust generation sizes.
-  _old_gen->compute_new_size(gc_overhead);
-  _young_gen->compute_new_size(gc_overhead);
+  if (UseSerialGCOverheadErgonomics) {
+    _old_gen->compute_new_size_for_target_gc_overhead(gc_overhead);
+    _young_gen->compute_new_size_for_target_gc_overhead(gc_overhead);
+  } else {
+    _old_gen->compute_new_size();
+    _young_gen->compute_new_size();
+  }
 
   // TODO: Shouldn't all this other work be included in GC overhead calculation?
 
