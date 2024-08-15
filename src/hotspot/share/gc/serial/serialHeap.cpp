@@ -510,7 +510,10 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
         gc_overhead = (int)(user_time * 100.0 / real_time);
         log_info(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
       } else {
-        log_warning(gc, cpu)("Error getting final time values for GC overhead calculation");
+        char buf[512];
+        size_t buf_len = os::lasterror(buf, sizeof(buf));
+        warning("Error getting final time values for young GC overhead calculation: %s", buf_len != 0 ? buf : "<unknown error>");
+        log_warning(gc, cpu)("Error getting final time values for young GC overhead calculation");
       }
     }
   }
@@ -825,7 +828,10 @@ void SerialHeap::do_full_collection_no_gc_locker(bool clear_all_soft_refs) {
         gc_overhead = (int)(user_time * 100.0 / real_time);
         log_info(gc, cpu)("GC Overhead (Tenured): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
       } else {
-        log_warning(gc, cpu)("Error getting final time values for GC overhead calculation");
+        char buf[512];
+        size_t buf_len = os::lasterror(buf, sizeof(buf));
+        warning("Error getting final time values for full GC overhead calculation: %s", buf_len != 0 ? buf : "<unknown error>");
+        log_warning(gc, cpu)("Error getting final time values for full GC overhead calculation");
       }
     }
   }
