@@ -500,7 +500,7 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
     if (starting_times_valid) {
       double real_time, user_time, system_time;
       bool valid = os::getTimesSecs(&real_time, &user_time, &system_time);
-      if (!valid) {
+      if (valid) {
         user_time -= starting_user_time;
         system_time -= starting_system_time;
         real_time -= starting_real_time;
@@ -821,7 +821,7 @@ void SerialHeap::do_full_collection_no_gc_locker(bool clear_all_soft_refs) {
     if (starting_times_valid) {
       double real_time, user_time, system_time;
       bool valid = os::getTimesSecs(&real_time, &user_time, &system_time);
-      if (!valid) {
+      if (valid) {
         user_time -= starting_user_time;
         system_time -= starting_system_time;
         real_time -= starting_real_time;
