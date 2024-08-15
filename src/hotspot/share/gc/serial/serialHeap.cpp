@@ -509,6 +509,8 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
         // Which rounding is used when casting double to int?
         gc_overhead = (int)(user_time * 100.0 / real_time);
         log_info(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
+        assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d.", gc_overhead);
+        assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d.", gc_overhead);
       } else {
         char buf[512];
         size_t buf_len = os::lasterror(buf, sizeof(buf));
@@ -827,6 +829,8 @@ void SerialHeap::do_full_collection_no_gc_locker(bool clear_all_soft_refs) {
         real_time -= starting_real_time;
         gc_overhead = (int)(user_time * 100.0 / real_time);
         log_info(gc, cpu)("GC Overhead (Tenured): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
+        assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d.", gc_overhead);
+        assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d.", gc_overhead);
       } else {
         char buf[512];
         size_t buf_len = os::lasterror(buf, sizeof(buf));
