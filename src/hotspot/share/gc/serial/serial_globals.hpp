@@ -36,7 +36,7 @@
           " to the target size at the next full GC rather than requiring"   \
           " smaller steps during multiple full GCs.")                       \
                                                                             \
-  product(bool, UseSerialGCOverheadErgonomics, true,                        \
+  product(bool, UseSerialGCOverheadErgonomics, false,                       \
           "When enabled, informs the GC to use CPU overhead to determine "  \
           " the heap size while respecting any Xms and Xmx sizes set on "   \
           " the command line. This also overrides the GCInterval? flag.")   \
