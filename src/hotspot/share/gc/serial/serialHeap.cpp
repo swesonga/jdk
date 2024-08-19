@@ -447,10 +447,16 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
   double starting_real_time = 0, starting_user_time = 0, starting_system_time = 0;
   bool starting_times_valid = false;
   int gc_overhead = -1;
+  jlong starting_gc_thread_cpu_time = -1;
   if (UseSerialGCOverheadErgonomics) {
+    starting_gc_thread_cpu_time = os::thread_cpu_time(Thread::current(), true /* user_sys_cpu_time */);
     starting_times_valid = os::getTimesSecs(&starting_real_time, &starting_user_time, &starting_system_time);
     if (!starting_times_valid) {
       log_warning(gc, cpu)("Error getting initial time values for GC overhead calculation");
+      // TODO: should we fall back to timestamps?
+    }
+    if (starting_gc_thread_cpu_time < 0) {
+      log_warning(gc, cpu)("Error getting initial thread CPU time for young GC overhead calculation");
       // TODO: should we fall back to timestamps?
     }
     // start.stamp();
@@ -501,16 +507,44 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
       double real_time, user_time, system_time;
       bool valid = os::getTimesSecs(&real_time, &user_time, &system_time);
       if (valid) {
-        user_time -= starting_user_time;
-        system_time -= starting_system_time;
-        real_time -= starting_real_time;
+        if (starting_gc_thread_cpu_time >= 0) {
+          jlong gc_thread_cpu_time = os::thread_cpu_time(Thread::current(), true /* user_sys_cpu_time */);
+          jlong elapsed_gc_thread_cpu_time = gc_thread_cpu_time - starting_gc_thread_cpu_time;
+          assert(elapsed_gc_thread_cpu_time >= 0, "Elapsed time must be > 0");
 
-        // How do noisy neighbors affect this calculation?
-        // Which rounding is used when casting double to int?
-        gc_overhead = (int)(user_time * 100.0 / real_time);
-        log_info(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
-        assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d.", gc_overhead);
-        assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d.", gc_overhead);
+          // elapsed_gc_thread_cpu_time *= 100;
+
+          if (gc_thread_cpu_time >= 0) {
+            user_time -= starting_user_time;
+            system_time -= starting_system_time;
+            real_time -= starting_real_time;
+
+            // How do noisy neighbors affect this calculation?
+            // Which rounding is used when casting double to int?
+            jlong user_plus_system_time_nanos = (user_time + system_time) * 1000000000;
+            double gc_overhead_float = (double)elapsed_gc_thread_cpu_time / (double)user_plus_system_time_nanos;
+            gc_overhead = (int)(gc_overhead_float * 100.0);
+            log_info(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
+
+            if (gc_overhead < 0) {
+              warning("GC Overhead (Young): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
+              assert(false, "Computed GC overhead must not be negative. Found %d.", gc_overhead);
+            } else if (gc_overhead > 100) {
+              warning("GC Overhead (Young): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
+              assert(false, "Computed GC overhead must not exceed 100. Found %d.", gc_overhead);
+            }
+            /*
+            assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d.", gc_overhead);
+            assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d.", gc_overhead);
+            */
+          } else {
+            log_warning(gc, cpu)("Error getting final thread CPU time for GC overhead calculation");
+            warning("Cannot compute young GC overhead due to final GC thread CPU time computation failure");
+            // TODO: should we fall back to timestamps?
+          }
+        } else {
+          warning("Cannot compute young GC overhead due to initial GC thread CPU time computation failure");
+        }
       } else {
         char buf[512];
         size_t buf_len = os::lasterror(buf, sizeof(buf));
@@ -761,10 +795,16 @@ void SerialHeap::do_full_collection_no_gc_locker(bool clear_all_soft_refs) {
   double starting_real_time = 0, starting_user_time = 0, starting_system_time = 0;
   bool starting_times_valid = false;
   int gc_overhead = -1;
+  jlong starting_gc_thread_cpu_time = -1;
   if (UseSerialGCOverheadErgonomics) {
+    starting_gc_thread_cpu_time = os::thread_cpu_time(Thread::current(), true /* user_sys_cpu_time */);
     starting_times_valid = os::getTimesSecs(&starting_real_time, &starting_user_time, &starting_system_time);
     if (!starting_times_valid) {
       log_warning(gc, cpu)("Error getting initial time values for GC overhead calculation");
+      // TODO: should we fall back to timestamps?
+    }
+    if (starting_gc_thread_cpu_time <= 0) {
+      log_warning(gc, cpu)("Error getting initial thread CPU time for full GC overhead calculation");
       // TODO: should we fall back to timestamps?
     }
     // start.stamp();
@@ -824,13 +864,42 @@ void SerialHeap::do_full_collection_no_gc_locker(bool clear_all_soft_refs) {
       double real_time, user_time, system_time;
       bool valid = os::getTimesSecs(&real_time, &user_time, &system_time);
       if (valid) {
-        user_time -= starting_user_time;
-        system_time -= starting_system_time;
-        real_time -= starting_real_time;
-        gc_overhead = (int)(user_time * 100.0 / real_time);
-        log_info(gc, cpu)("GC Overhead (Tenured): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
-        assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d.", gc_overhead);
-        assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d.", gc_overhead);
+        if (starting_gc_thread_cpu_time > 0) {
+          jlong gc_thread_cpu_time = os::thread_cpu_time(Thread::current(), true /* user_sys_cpu_time */);
+          jlong elapsed_gc_thread_cpu_time = gc_thread_cpu_time - starting_gc_thread_cpu_time;
+          assert(elapsed_gc_thread_cpu_time >= 0, "Elapsed time must be > 0");
+
+          // elapsed_gc_thread_cpu_time *= 100;
+
+          if (gc_thread_cpu_time > 0) {
+            user_time -= starting_user_time;
+            system_time -= starting_system_time;
+            real_time -= starting_real_time;
+
+            // How do noisy neighbors affect this calculation?
+            // Which rounding is used when casting double to int?
+            jlong user_plus_system_time_nanos = (user_time + system_time) * 1000000000;
+            gc_overhead = (int)(elapsed_gc_thread_cpu_time * 100.0 / user_plus_system_time_nanos);
+            log_info(gc, cpu)("GC Overhead (Tenured): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
+            if (gc_overhead < 0) {
+              warning(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
+              assert(false, "Computed GC overhead must not be negative. Found %d.", gc_overhead);
+            } else if (gc_overhead > 100) {
+              warning(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
+              assert(false, "Computed GC overhead must not exceed 100. Found %d.", gc_overhead);
+            }
+            /*
+            assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d.", gc_overhead);
+            assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d.", gc_overhead);
+            */
+          } else {
+            log_warning(gc, cpu)("Error getting final thread CPU time for full GC overhead calculation");
+            warning("Cannot compute full GC overhead due to final GC thread CPU time computation failure");
+            // TODO: should we fall back to timestamps?
+          }
+        } else {
+          warning("Cannot compute full GC overhead due to initial GC thread CPU time computation failure");
+        }
       } else {
         char buf[512];
         size_t buf_len = os::lasterror(buf, sizeof(buf));
