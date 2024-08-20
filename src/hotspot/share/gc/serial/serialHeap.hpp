@@ -111,6 +111,18 @@ private:
 
   bool is_young_gc_safe() const;
 
+  double _last_young_gc_ending_real_time;
+  double _last_young_gc_ending_user_time;
+  double _last_young_gc_ending_system_time;
+  bool _last_young_gc_ending_times_valid;
+  int _completed_young_collections;
+
+  double _last_full_gc_ending_real_time;
+  double _last_full_gc_ending_user_time;
+  double _last_full_gc_ending_system_time;
+  bool _last_full_gc_ending_times_valid;
+  int _completed_full_collections;
+
 public:
   // Returns JNI_OK on success
   jint initialize() override;

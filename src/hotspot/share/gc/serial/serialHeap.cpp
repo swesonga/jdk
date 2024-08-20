@@ -198,6 +198,18 @@ jint SerialHeap::initialize() {
   _young_gen = new DefNewGeneration(young_rs, NewSize, MinNewSize, MaxNewSize);
   _old_gen = new TenuredGeneration(old_rs, OldSize, MinOldSize, MaxOldSize, rem_set());
 
+  _last_young_gc_ending_real_time = 0;
+  _last_young_gc_ending_user_time = 0;
+  _last_young_gc_ending_system_time = 0;
+  _last_young_gc_ending_times_valid = 0;
+  _completed_young_collections = 0;
+
+  _last_full_gc_ending_real_time = 0;
+  _last_full_gc_ending_user_time = 0;
+  _last_full_gc_ending_system_time = 0;
+  _last_full_gc_ending_times_valid = 0;
+  _completed_full_collections = 0;
+
   GCInitLogger::print();
 
   return JNI_OK;
@@ -492,39 +504,50 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
 
   if (UseSerialGCOverheadErgonomics) {
     // end.stamp();
-    if (!os::is_thread_cpu_time_supported()) {
-      assert(os::is_thread_cpu_time_supported(), "os::is_thread_cpu_time_supported() must be true");
-      // Should we disable UseSerialGCOverheadErgonomics?
-    }
 
     if (starting_times_valid) {
       double real_time, user_time, system_time;
       bool valid = os::getTimesSecs(&real_time, &user_time, &system_time);
       if (valid) {
-        user_time -= starting_user_time;
-        system_time -= starting_system_time;
-        real_time -= starting_real_time;
+        _last_young_gc_ending_real_time = real_time;
+        _last_young_gc_ending_system_time = system_time;
+        _last_young_gc_ending_user_time = user_time;
 
         // How do noisy neighbors affect this calculation?
         // Which rounding is used when casting double to int?
-        gc_overhead = (int)(user_time * 100.0 / real_time);
-        log_info(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
-        assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d.", gc_overhead);
-        assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d.", gc_overhead);
+        if (_completed_young_collections > 0) {
+          assert(_last_young_gc_ending_real_time >= 0, "Real time at end of last GC must be >= 0");
+          assert(real_time >= 0, "Real time at end of current GC must be >= 0");
+          assert(real_time >= _last_young_gc_ending_real_time, "Real time at end of current GC must be >= Real time at end of last GC");
+          double time_since_last_gc = real_time - _last_young_gc_ending_real_time;
+          user_time -= starting_user_time;
+          system_time -= starting_system_time;
+          real_time -= starting_real_time;
+          gc_overhead = (int)(real_time * 100.0 / time_since_last_gc);
+          log_info(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.6fs Sys=%3.6fs Real=%3.6fs", gc_overhead, user_time, system_time, real_time);
+          assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, user_time, system_time, real_time, time_since_last_gc);
+          assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, user_time, system_time, real_time, time_since_last_gc);
+        }
       } else {
         char buf[512];
         size_t buf_len = os::lasterror(buf, sizeof(buf));
         warning("Error getting final time values for young GC overhead calculation: %s", buf_len != 0 ? buf : "<unknown error>");
         log_warning(gc, cpu)("Error getting final time values for young GC overhead calculation");
       }
+
+      _last_young_gc_ending_times_valid = true;
+    } else {
+      _last_young_gc_ending_times_valid = false;
     }
   }
 
-  if (UseSerialGCOverheadErgonomics) {
+  if (UseSerialGCOverheadErgonomics && _completed_young_collections > 0) {
     _young_gen->compute_new_size_for_target_gc_overhead(gc_overhead);
   } else {
     _young_gen->compute_new_size();
   }
+
+  _completed_young_collections++;
 
   print_heap_change(pre_gc_values);
 
@@ -815,39 +838,52 @@ void SerialHeap::do_full_collection_no_gc_locker(bool clear_all_soft_refs) {
 
   if (UseSerialGCOverheadErgonomics) {
     // end.stamp();
-    if (!os::is_thread_cpu_time_supported()) {
-      assert(os::is_thread_cpu_time_supported(), "os::is_thread_cpu_time_supported() must be true");
-      // TODO: Should we disable UseSerialGCOverheadErgonomics?
-    }
 
     if (starting_times_valid) {
       double real_time, user_time, system_time;
       bool valid = os::getTimesSecs(&real_time, &user_time, &system_time);
       if (valid) {
-        user_time -= starting_user_time;
-        system_time -= starting_system_time;
-        real_time -= starting_real_time;
-        gc_overhead = (int)(user_time * 100.0 / real_time);
-        log_info(gc, cpu)("GC Overhead (Tenured): %d. Computed from: User=%3.2fs Sys=%3.2fs Real=%3.2fs", gc_overhead, user_time, system_time, real_time);
-        assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d.", gc_overhead);
-        assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d.", gc_overhead);
+        // How do noisy neighbors affect this calculation?
+        // Which rounding is used when casting double to int?
+        if (_completed_full_collections > 0) {
+          assert(_last_full_gc_ending_real_time >= 0, "Real time at end of last GC must be >= 0");
+          assert(real_time >= 0, "Real time at end of current GC must be >= 0");
+          assert(real_time >= _last_full_gc_ending_real_time, "Real time at end of current GC must be >= Real time at end of last GC");
+          double time_since_last_gc = real_time - _last_full_gc_ending_real_time;
+          user_time -= starting_user_time;
+          system_time -= starting_system_time;
+          real_time -= starting_real_time;
+          gc_overhead = (int)(real_time * 100.0 / time_since_last_gc);
+          log_info(gc, cpu)("GC Overhead (Tenured): %d. Computed from: User=%3.6fs Sys=%3.6fs Real=%3.6fs", gc_overhead, user_time, system_time, real_time);
+          assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, user_time, system_time, real_time, time_since_last_gc);
+          assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, user_time, system_time, real_time, time_since_last_gc);
+        }
       } else {
         char buf[512];
         size_t buf_len = os::lasterror(buf, sizeof(buf));
         warning("Error getting final time values for full GC overhead calculation: %s", buf_len != 0 ? buf : "<unknown error>");
         log_warning(gc, cpu)("Error getting final time values for full GC overhead calculation");
       }
+
+      _last_full_gc_ending_real_time = real_time;
+      _last_full_gc_ending_system_time = system_time;
+      _last_full_gc_ending_user_time = user_time;
+      _last_full_gc_ending_times_valid = true;
+    } else {
+      _last_full_gc_ending_times_valid = false;
     }
   }
 
   // Adjust generation sizes.
-  if (UseSerialGCOverheadErgonomics) {
+  if (UseSerialGCOverheadErgonomics && _completed_full_collections > 0) {
     _old_gen->compute_new_size_for_target_gc_overhead(gc_overhead);
     _young_gen->compute_new_size_for_target_gc_overhead(gc_overhead);
   } else {
     _old_gen->compute_new_size();
     _young_gen->compute_new_size();
   }
+
+  _completed_full_collections++;
 
   // TODO: Shouldn't all this other work be included in GC overhead calculation?
 
