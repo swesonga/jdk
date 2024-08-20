@@ -509,10 +509,6 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
       double real_time, user_time, system_time;
       bool valid = os::getTimesSecs(&real_time, &user_time, &system_time);
       if (valid) {
-        _last_young_gc_ending_real_time = real_time;
-        _last_young_gc_ending_system_time = system_time;
-        _last_young_gc_ending_user_time = user_time;
-
         // How do noisy neighbors affect this calculation?
         // Which rounding is used when casting double to int?
         if (_completed_young_collections > 0) {
@@ -520,13 +516,13 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
           assert(real_time >= 0, "Real time at end of current GC must be >= 0");
           assert(real_time >= _last_young_gc_ending_real_time, "Real time at end of current GC must be >= Real time at end of last GC");
           double time_since_last_gc = real_time - _last_young_gc_ending_real_time;
-          user_time -= starting_user_time;
-          system_time -= starting_system_time;
-          real_time -= starting_real_time;
-          gc_overhead = (int)(real_time * 100.0 / time_since_last_gc);
-          log_info(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.6fs Sys=%3.6fs Real=%3.6fs", gc_overhead, user_time, system_time, real_time);
-          assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, user_time, system_time, real_time, time_since_last_gc);
-          assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, user_time, system_time, real_time, time_since_last_gc);
+          double gc_user_time = user_time - starting_user_time;
+          double gc_system_time = system_time - starting_system_time;
+          double gc_real_time = real_time - starting_real_time;
+          gc_overhead = (int)(gc_real_time * 100.0 / time_since_last_gc);
+          log_info(gc, cpu)("GC Overhead (Young): %d. Computed from: User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, gc_user_time, gc_system_time, gc_real_time, time_since_last_gc);
+          assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, gc_user_time, gc_system_time, gc_real_time, time_since_last_gc);
+          assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, gc_user_time, gc_system_time, gc_real_time, time_since_last_gc);
         }
       } else {
         char buf[512];
@@ -535,6 +531,9 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
         log_warning(gc, cpu)("Error getting final time values for young GC overhead calculation");
       }
 
+      _last_young_gc_ending_real_time = real_time;
+      _last_young_gc_ending_system_time = system_time;
+      _last_young_gc_ending_user_time = user_time;
       _last_young_gc_ending_times_valid = true;
     } else {
       _last_young_gc_ending_times_valid = false;
@@ -850,13 +849,13 @@ void SerialHeap::do_full_collection_no_gc_locker(bool clear_all_soft_refs) {
           assert(real_time >= 0, "Real time at end of current GC must be >= 0");
           assert(real_time >= _last_full_gc_ending_real_time, "Real time at end of current GC must be >= Real time at end of last GC");
           double time_since_last_gc = real_time - _last_full_gc_ending_real_time;
-          user_time -= starting_user_time;
-          system_time -= starting_system_time;
-          real_time -= starting_real_time;
-          gc_overhead = (int)(real_time * 100.0 / time_since_last_gc);
-          log_info(gc, cpu)("GC Overhead (Tenured): %d. Computed from: User=%3.6fs Sys=%3.6fs Real=%3.6fs", gc_overhead, user_time, system_time, real_time);
-          assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, user_time, system_time, real_time, time_since_last_gc);
-          assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, user_time, system_time, real_time, time_since_last_gc);
+          double gc_user_time = user_time - starting_user_time;
+          double gc_system_time = system_time - starting_system_time;
+          double gc_real_time = real_time - starting_real_time;
+          gc_overhead = (int)(gc_real_time * 100.0 / time_since_last_gc);
+          log_info(gc, cpu)("GC Overhead (Tenured): %d. Computed from: User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, gc_user_time, gc_system_time, gc_real_time, time_since_last_gc);
+          assert(gc_overhead >= 0, "Computed GC overhead must not be negative. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, gc_user_time, gc_system_time, gc_real_time, time_since_last_gc);
+          assert(gc_overhead <= 100, "Computed GC overhead must not exceed 100. Found %d. User=%3.6fs Sys=%3.6fs Real=%3.6fs, Time since last GC=%3.6fs", gc_overhead, gc_user_time, gc_system_time, gc_real_time, time_since_last_gc);
         }
       } else {
         char buf[512];
