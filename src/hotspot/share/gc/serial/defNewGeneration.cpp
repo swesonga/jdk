@@ -417,7 +417,76 @@ size_t DefNewGeneration::adjust_for_thread_increase(size_t new_size_candidate,
 }
 
 void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) {
+  static int range[4] = { 0, 5, 10, 101};                           // zones of aggressiveness
+  static double resizeTable[4] = { -0.10, 0.10, 0.25, 0.50 };   // levels of aggressiveness
 
+  julong totalMemory = os::physical_memory(); // Should this be free memory instead?
+  size_t configuredHeapSizeInMegaBytes = MaxHeapSize;
+  size_t maxHeapSizeInMegaBytes = MIN2(configuredHeapSizeInMegaBytes, totalMemory);
+
+  SerialHeap* gch = SerialHeap::heap();
+
+  size_t old_size = gch->old_gen()->capacity();
+  size_t new_size_before = _virtual_space.committed_size();
+  size_t min_new_size = NewSize;
+  size_t max_new_size = reserved().byte_size();
+  assert(min_new_size <= new_size_before &&
+         new_size_before <= max_new_size,
+         "just checking");
+  // All space sizes must be multiples of Generation::GenGrain.
+  size_t alignment = Generation::GenGrain;
+  size_t currentHeapSizeInMegaBytes = new_size_before;
+
+  int gcOverheadDiff = gc_overhead - SerialGCOverheadTarget;
+  int index = 0;
+  while ( gcOverheadDiff >= range[index]) index++;
+  size_t available = maxHeapSizeInMegaBytes - currentHeapSizeInMegaBytes;
+  int resizeFraction = (int)(((gcOverheadDiff >= 0) ? (double)available : (double)currentHeapSizeInMegaBytes) * resizeTable[index]);
+  size_t newSize = currentHeapSizeInMegaBytes + resizeFraction;
+  currentHeapSizeInMegaBytes = MIN2(newSize, maxHeapSizeInMegaBytes);
+
+  // ------------------------------------------------------
+
+  // Adjust new generation size
+  size_t desired_new_size = currentHeapSizeInMegaBytes;
+  desired_new_size = clamp(desired_new_size, min_new_size, max_new_size);
+  assert(desired_new_size <= max_new_size, "just checking");
+
+  bool changed = false;
+  if (desired_new_size > new_size_before) {
+    size_t change = desired_new_size - new_size_before;
+    assert(change % alignment == 0, "just checking");
+    if (expand(change)) {
+       changed = true;
+    }
+    // If the heap failed to expand to the desired size,
+    // "changed" will be false.  If the expansion failed
+    // (and at this point it was expected to succeed),
+    // ignore the failure (leaving "changed" as false).
+  }
+  if (desired_new_size < new_size_before && eden()->is_empty()) {
+    // bail out of shrinking if objects in eden
+    size_t change = new_size_before - desired_new_size;
+    assert(change % alignment == 0, "just checking");
+    _virtual_space.shrink_by(change);
+    changed = true;
+  }
+  if (changed) {
+    // The spaces have already been mangled at this point but
+    // may not have been cleared (set top = bottom) and should be.
+    // Mangling was done when the heap was being expanded.
+    compute_space_boundaries(eden()->used(),
+                             SpaceDecorator::Clear,
+                             SpaceDecorator::DontMangle);
+    MemRegion cmr((HeapWord*)_virtual_space.low(),
+                  (HeapWord*)_virtual_space.high());
+    gch->rem_set()->resize_covered_region(cmr);
+
+    log_debug(gc, ergo, heap)(
+        "New generation size " SIZE_FORMAT "K->" SIZE_FORMAT "K [eden=" SIZE_FORMAT "K,survivor=" SIZE_FORMAT "K]",
+        new_size_before/K, _virtual_space.committed_size()/K,
+        eden()->capacity()/K, from()->capacity()/K);
+  }
 }
 
 void DefNewGeneration::compute_new_size() {
