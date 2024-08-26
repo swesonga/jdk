@@ -418,11 +418,11 @@ size_t DefNewGeneration::adjust_for_thread_increase(size_t new_size_candidate,
 
 void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) {
   static int range[4] = { 0, 5, 10, 101};                           // zones of aggressiveness
-  static double resizeTable[4] = { -0.10, 0.10, 0.25, 0.50 };   // levels of aggressiveness
+  static double resize_table[4] = { -0.10, 0.10, 0.25, 0.50 };      // levels of aggressiveness
 
-  julong totalMemory = os::physical_memory(); // Should this be free memory instead?
-  size_t configuredHeapSizeInMegaBytes = MaxHeapSize;
-  size_t maxHeapSizeInMegaBytes = MIN2(configuredHeapSizeInMegaBytes, totalMemory);
+  julong total_memory = os::physical_memory(); // Should this be free memory instead?
+  size_t configured_heap_size_mb = MaxHeapSize;
+  size_t max_heap_size_mb = MIN2(configured_heap_size_mb, total_memory);
 
   SerialHeap* gch = SerialHeap::heap();
 
@@ -435,20 +435,20 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
          "just checking");
   // All space sizes must be multiples of Generation::GenGrain.
   size_t alignment = Generation::GenGrain;
-  size_t currentHeapSizeInMegaBytes = new_size_before;
+  size_t current_heap_size_mb = new_size_before;
 
-  int gcOverheadDiff = gc_overhead - SerialGCOverheadTarget;
+  int gc_overhead_diff = gc_overhead - SerialGCOverheadTarget;
   int index = 0;
-  while ( gcOverheadDiff >= range[index]) index++;
-  size_t available = maxHeapSizeInMegaBytes - currentHeapSizeInMegaBytes;
-  int resizeFraction = (int)(((gcOverheadDiff >= 0) ? (double)available : (double)currentHeapSizeInMegaBytes) * resizeTable[index]);
-  size_t newSize = currentHeapSizeInMegaBytes + resizeFraction;
-  currentHeapSizeInMegaBytes = MIN2(newSize, maxHeapSizeInMegaBytes);
+  while (gc_overhead_diff >= range[index]) index++;
+  size_t available = max_heap_size_mb - current_heap_size_mb;
+  int resize_fraction = (int)(((gc_overhead_diff >= 0) ? (double)available : (double)current_heap_size_mb) * resize_table[index]);
+  size_t new_heap_size = current_heap_size_mb + resize_fraction;
+  current_heap_size_mb = MIN2(new_heap_size, max_heap_size_mb);
 
   // ------------------------------------------------------
 
   // Adjust new generation size
-  size_t desired_new_size = currentHeapSizeInMegaBytes;
+  size_t desired_new_size = current_heap_size_mb;
   desired_new_size = clamp(desired_new_size, min_new_size, max_new_size);
   assert(desired_new_size <= max_new_size, "just checking");
 
