@@ -483,7 +483,7 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
     gch->rem_set()->resize_covered_region(cmr);
 
     log_debug(gc, ergo, heap)(
-        "New generation size " SIZE_FORMAT "K->" SIZE_FORMAT "K [eden=" SIZE_FORMAT "K,survivor=" SIZE_FORMAT "K]",
+        "GC Overhead-based AHS: New generation size " SIZE_FORMAT "K->" SIZE_FORMAT "K [eden=" SIZE_FORMAT "K,survivor=" SIZE_FORMAT "K]",
         new_size_before/K, _virtual_space.committed_size()/K,
         eden()->capacity()/K, from()->capacity()/K);
   }
