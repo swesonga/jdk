@@ -421,8 +421,9 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
   static double resize_table[4] = { -0.10, 0.10, 0.25, 0.50 };      // levels of aggressiveness
 
   julong total_memory = os::physical_memory(); // Should this be free memory instead?
+  size_t total_memory_mb = total_memory / M;
   size_t configured_heap_size_mb = MaxHeapSize;
-  size_t max_heap_size_mb = MIN2(configured_heap_size_mb, total_memory);
+  size_t max_heap_size_mb = MIN2(configured_heap_size_mb, total_memory_mb);
 
   SerialHeap* gch = SerialHeap::heap();
 
@@ -442,8 +443,8 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
   while (gc_overhead_diff >= range[index]) index++;
   size_t available = max_heap_size_mb - current_heap_size_mb;
   int resize_fraction = (int)(((gc_overhead_diff >= 0) ? (double)available : (double)current_heap_size_mb) * resize_table[index]);
-  size_t new_heap_size = current_heap_size_mb + resize_fraction;
-  current_heap_size_mb = MIN2(new_heap_size, max_heap_size_mb);
+  size_t new_heap_size_mb = current_heap_size_mb + resize_fraction;
+  current_heap_size_mb = MIN2(new_heap_size_mb, max_heap_size_mb);
 
   // ------------------------------------------------------
 
