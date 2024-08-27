@@ -446,6 +446,31 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
   size_t new_heap_size_mb = current_heap_size_mb + resize_fraction;
   current_heap_size_mb = MIN2(new_heap_size_mb, max_heap_size_mb);
 
+#define SERIAL_GC_AHS_PREFIX "GC Overhead-based AHS: "
+  log_debug(gc, cpu)(
+        SERIAL_GC_AHS_PREFIX
+        "total_memory_mb         " SIZE_FORMAT
+        "configured_heap_size_mb " SIZE_FORMAT
+        "max_heap_size_mb        " SIZE_FORMAT
+        "gc_overhead             " SIZE_FORMAT
+        "gc_overhead_diff        " SIZE_FORMAT
+        "SerialGCOverheadTarget  " SIZE_FORMAT
+        "available               " SIZE_FORMAT
+        "resize_fraction         " SIZE_FORMAT
+        "new_heap_size_mb        " SIZE_FORMAT
+        "current_heap_size_mb    " SIZE_FORMAT
+        total_memory_mb,
+        configured_heap_size_mb,
+        max_heap_size_mb,
+        gc_overhead,
+        gc_overhead_diff,
+        SerialGCOverheadTarget,
+        available,
+        resize_fraction,
+        new_heap_size_mb,
+        current_heap_size_mb,
+        );
+
   // ------------------------------------------------------
 
   // Adjust new generation size
@@ -484,7 +509,7 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
     gch->rem_set()->resize_covered_region(cmr);
 
     log_debug(gc, ergo, heap)(
-        "GC Overhead-based AHS: New generation size " SIZE_FORMAT "K->" SIZE_FORMAT "K [eden=" SIZE_FORMAT "K,survivor=" SIZE_FORMAT "K]",
+        SERIAL_GC_AHS_PREFIX "New generation size " SIZE_FORMAT "K->" SIZE_FORMAT "K [eden=" SIZE_FORMAT "K,survivor=" SIZE_FORMAT "K]",
         new_size_before/K, _virtual_space.committed_size()/K,
         eden()->capacity()/K, from()->capacity()/K);
   }
