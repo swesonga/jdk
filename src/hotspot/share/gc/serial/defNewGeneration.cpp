@@ -422,7 +422,7 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
 
   julong total_memory = os::physical_memory(); // Should this be free memory instead?
   size_t total_memory_mb = total_memory / M;
-  size_t configured_heap_size_mb = MaxHeapSize;
+  size_t configured_heap_size_mb = MaxHeapSize / M;
   size_t max_heap_size_mb = MIN2(configured_heap_size_mb, total_memory_mb);
 
   SerialHeap* gch = SerialHeap::heap();
