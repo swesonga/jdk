@@ -458,7 +458,7 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
         "available               " SIZE_FORMAT
         "resize_fraction         " SIZE_FORMAT
         "new_heap_size_mb        " SIZE_FORMAT
-        "current_heap_size_mb    " SIZE_FORMAT
+        "current_heap_size_mb    " SIZE_FORMAT,
         total_memory_mb,
         configured_heap_size_mb,
         max_heap_size_mb,
@@ -468,7 +468,7 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
         available,
         resize_fraction,
         new_heap_size_mb,
-        current_heap_size_mb,
+        current_heap_size_mb
         );
 
   // ------------------------------------------------------
