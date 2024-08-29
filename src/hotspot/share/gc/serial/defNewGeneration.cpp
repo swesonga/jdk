@@ -436,7 +436,7 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
          "just checking");
   // All space sizes must be multiples of Generation::GenGrain.
   size_t alignment = Generation::GenGrain;
-  size_t current_heap_size_mb = new_size_before;
+  size_t current_heap_size_mb = new_size_before / M;
 
   int gc_overhead_diff = gc_overhead - SerialGCOverheadTarget;
   int index = 0;
@@ -469,14 +469,14 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
         available,
         resize_fraction,
         new_heap_size_mb,
-        new_size_before, // original value of current_heap_size_mb
+        new_size_before / M, // original value of current_heap_size_mb
         current_heap_size_mb
         );
 
   // ------------------------------------------------------
 
   // Adjust new generation size
-  size_t desired_new_size = current_heap_size_mb;
+  size_t desired_new_size = current_heap_size_mb * M;
   desired_new_size = clamp(desired_new_size, min_new_size, max_new_size);
   assert(desired_new_size <= max_new_size, "just checking");
 
