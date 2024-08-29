@@ -449,16 +449,17 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
 #define SERIAL_GC_AHS_PREFIX "GC Overhead-based AHS: "
   log_debug(gc, cpu)(
         SERIAL_GC_AHS_PREFIX
-        "total_memory_mb         " SIZE_FORMAT
-        "configured_heap_size_mb " SIZE_FORMAT
-        "max_heap_size_mb        " SIZE_FORMAT
-        "gc_overhead             " SIZE_FORMAT
-        "gc_overhead_diff        " SIZE_FORMAT
-        "SerialGCOverheadTarget  " SIZE_FORMAT
-        "available               " SIZE_FORMAT
-        "resize_fraction         " SIZE_FORMAT
-        "new_heap_size_mb        " SIZE_FORMAT
-        "current_heap_size_mb    " SIZE_FORMAT,
+        "\n total_memory_mb            " SIZE_FORMAT
+        "\n configured_heap_size_mb    " SIZE_FORMAT
+        "\n max_heap_size_mb           " SIZE_FORMAT
+        "\n gc_overhead                " INT32_FORMAT
+        "\n gc_overhead_diff           " INT32_FORMAT
+        "\n SerialGCOverheadTarget     " UINT32_FORMAT
+        "\n available                  " SIZE_FORMAT
+        "\n resize_fraction            " INT32_FORMAT
+        "\n new_heap_size_mb           " SIZE_FORMAT
+        "\n current_heap_size_mb_orig  " SIZE_FORMAT
+        "\n current_heap_size_mb       " SIZE_FORMAT,
         total_memory_mb,
         configured_heap_size_mb,
         max_heap_size_mb,
@@ -468,6 +469,7 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
         available,
         resize_fraction,
         new_heap_size_mb,
+        new_size_before, // original value of current_heap_size_mb
         current_heap_size_mb
         );
 
