@@ -420,14 +420,35 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
   static int range[4] = { 0, 5, 10, 101};                           // zones of aggressiveness
   static double resize_table[4] = { -0.10, 0.10, 0.25, 0.50 };      // levels of aggressiveness
 
-  julong total_memory = os::physical_memory(); // Should this be free memory instead?
-  size_t total_memory_mb = total_memory / M;
+  // -------------------------------------------------------------------------------------
+  // NOTE:
+  // 1. MaxHeapSize should be correct by the time this method is executed
+  // 2. The size of the reserved region is MaxNewSize + MaxOldSize
+  //    See https://github.com/openjdk/jdk/blob/f1d0e715b67e2ca47b525069d8153abbb33f75b9/src/hotspot/share/gc/serial/serialHeap.cpp#L213
+  //    We do not need to worry about changing these values
+
+/*
+  julong total_memory = os::physical_memory(); // Should this be free memory instead? No, multi-jvm scenario would have subsequent ones get smaller.
+  // total_memory_mb is used to ensure max_heap_size_mb does not exceed the physical memory. 
+  size_t total_memory_mb = total_memory / M; // This is no longer necessary
+
+  // However, MaxHeapSize has already been computed elsewhere (25% of physical RAM)
+  // We need to ensure that computation is 100% of physical RAM, unless
+  // heap size has been set on the command line, in which case that value must be respected.
   size_t configured_heap_size_mb = MaxHeapSize / M;
   size_t max_heap_size_mb = MIN2(configured_heap_size_mb, total_memory_mb);
+  max_heap_size_mb = MaxHeapSize;
+*/
 
   SerialHeap* gch = SerialHeap::heap();
 
-  size_t old_size = gch->old_gen()->capacity();
+  // The initial partition of the space reserved for the heap cannot be changed.
+  // Therefore, MaxNewSize serves as MaxHeap when resizing the young generation only!
+  size_t max_heap_size_mb = MaxNewSize / M;
+  // -------------------------------------------------------------------------------------
+
+  // Note: the eden space needs to be big enough to support allocations.
+  // Note: young size will determine GC frequency.
   size_t new_size_before = _virtual_space.committed_size();
   size_t min_new_size = NewSize;
   size_t max_new_size = reserved().byte_size();
@@ -437,6 +458,7 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
   // All space sizes must be multiples of Generation::GenGrain.
   size_t alignment = Generation::GenGrain;
   size_t current_heap_size_mb = new_size_before / M;
+  size_t current_heap_size_mb_prev = current_heap_size_mb;
 
   int gc_overhead_diff = gc_overhead - SerialGCOverheadTarget;
   int index = 0;
@@ -449,27 +471,27 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
 #define SERIAL_GC_AHS_PREFIX "GC Overhead-based AHS: "
   log_debug(gc, cpu)(
         SERIAL_GC_AHS_PREFIX
-        "\n total_memory_mb            " SIZE_FORMAT
-        "\n configured_heap_size_mb    " SIZE_FORMAT
-        "\n max_heap_size_mb           " SIZE_FORMAT
+        "\n Physical Memory (MB)       " SIZE_FORMAT
+        "\n MaxHeapSize (MB)           " SIZE_FORMAT
+        "\n max_heap_size_mb (young)   " SIZE_FORMAT
         "\n gc_overhead                " INT32_FORMAT
         "\n gc_overhead_diff           " INT32_FORMAT
         "\n SerialGCOverheadTarget     " UINT32_FORMAT
         "\n available                  " SIZE_FORMAT
         "\n resize_fraction            " INT32_FORMAT
+        "\n current_heap_size_mb_prev  " SIZE_FORMAT
         "\n new_heap_size_mb           " SIZE_FORMAT
-        "\n current_heap_size_mb_orig  " SIZE_FORMAT
         "\n current_heap_size_mb       " SIZE_FORMAT,
-        total_memory_mb,
-        configured_heap_size_mb,
+        os::physical_memory() / M,
+        MaxHeapSize / M,
         max_heap_size_mb,
         gc_overhead,
         gc_overhead_diff,
         SerialGCOverheadTarget,
         available,
         resize_fraction,
+        current_heap_size_mb_prev, // original value of current_heap_size_mb
         new_heap_size_mb,
-        new_size_before / M, // original value of current_heap_size_mb
         current_heap_size_mb
         );
 
