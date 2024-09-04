@@ -468,6 +468,12 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
   size_t new_heap_size_mb = current_heap_size_mb + resize_fraction;
   current_heap_size_mb = MIN2(new_heap_size_mb, max_heap_size_mb);
 
+  size_t aligned_max = ((max_uintx - alignment) & ~(alignment-1));
+  size_t desired_new_size = current_heap_size_mb * M;
+  if (desired_new_size <= aligned_max) {
+    desired_new_size = align_up(desired_new_size, alignment);
+  }
+
 #define SERIAL_GC_AHS_PREFIX "GC Overhead-based AHS: "
   log_debug(gc, cpu)(
         SERIAL_GC_AHS_PREFIX
@@ -481,7 +487,8 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
         "\n resize_fraction            " INT32_FORMAT
         "\n current_heap_size_mb_prev  " SIZE_FORMAT
         "\n new_heap_size_mb           " SIZE_FORMAT
-        "\n current_heap_size_mb       " SIZE_FORMAT,
+        "\n current_heap_size_mb       " SIZE_FORMAT
+        "\n desired_new_size (MB)      " SIZE_FORMAT,
         os::physical_memory() / M,
         MaxHeapSize / M,
         max_heap_size_mb,
@@ -492,13 +499,13 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
         resize_fraction,
         current_heap_size_mb_prev, // original value of current_heap_size_mb
         new_heap_size_mb,
-        current_heap_size_mb
+        current_heap_size_mb,
+        desired_new_size / M
         );
 
   // ------------------------------------------------------
 
   // Adjust new generation size
-  size_t desired_new_size = current_heap_size_mb * M;
   desired_new_size = clamp(desired_new_size, min_new_size, max_new_size);
   assert(desired_new_size <= max_new_size, "just checking");
 
