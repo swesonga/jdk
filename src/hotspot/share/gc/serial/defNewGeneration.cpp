@@ -461,6 +461,8 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
   size_t current_heap_size_mb_prev = current_heap_size_mb;
 
   int gc_overhead_diff = gc_overhead - SerialGCOverheadTarget;
+
+  // TODO: handle (gc_overhead_diff == 0)
   int index = 0;
   while (gc_overhead_diff >= range[index]) index++;
   size_t available = max_heap_size_mb - current_heap_size_mb;
@@ -479,6 +481,8 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
         SERIAL_GC_AHS_PREFIX
         "\n Physical Memory (MB)       " SIZE_FORMAT
         "\n MaxHeapSize (MB)           " SIZE_FORMAT
+        "\n MaxNewSize (MB)            " SIZE_FORMAT
+        "\n max_new_size (MB)           " SIZE_FORMAT
         "\n max_heap_size_mb (young)   " SIZE_FORMAT
         "\n gc_overhead                " INT32_FORMAT
         "\n gc_overhead_diff           " INT32_FORMAT
@@ -488,9 +492,12 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
         "\n current_heap_size_mb_prev  " SIZE_FORMAT
         "\n new_heap_size_mb           " SIZE_FORMAT
         "\n current_heap_size_mb       " SIZE_FORMAT
-        "\n desired_new_size (MB)      " SIZE_FORMAT,
+        "\n desired_new_size (MB)      " SIZE_FORMAT
+        "\n SerialGCOverheadCustomDeltaKiB " SIZE_FORMAT,
         os::physical_memory() / M,
         MaxHeapSize / M,
+        MaxNewSize / M,
+        max_new_size / M,
         max_heap_size_mb,
         gc_overhead,
         gc_overhead_diff,
@@ -500,10 +507,14 @@ void DefNewGeneration::compute_new_size_for_target_gc_overhead(int gc_overhead) 
         current_heap_size_mb_prev, // original value of current_heap_size_mb
         new_heap_size_mb,
         current_heap_size_mb,
-        desired_new_size / M
+        desired_new_size / M,
+        SerialGCOverheadCustomDeltaKiB
         );
 
   // ------------------------------------------------------
+  if (SerialGCOverheadCustomDeltaKiB != 0) {
+    desired_new_size = SerialGCOverheadCustomDeltaKiB * K;
+  }
 
   // Adjust new generation size
   desired_new_size = clamp(desired_new_size, min_new_size, max_new_size);

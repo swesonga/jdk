@@ -45,6 +45,11 @@
           "The CPU overhead value that GC should target by adjusting "      \
           " heap size")                                                     \
           range(1, 100)                                                     \
+                                                                            \
+  product(uintx, SerialGCOverheadCustomDeltaKiB, 0,                         \
+          "A custom desired heap size when a heap size change is needed. "  \
+          " This is useful for testing the shrink/expand functions.")       \
+          range(0, max_uintx)                                               \
 
 // end of GC_SERIAL_FLAGS
 
