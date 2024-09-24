@@ -27,6 +27,7 @@
 
 #include "oops/compressedOops.hpp"
 
+#include "logging/log.hpp"
 #include "memory/universe.hpp"
 #include "oops/oop.hpp"
 #include "utilities/align.hpp"
@@ -58,6 +59,7 @@ inline oop CompressedOops::decode_not_null(narrowOop v) {
   bool is_in_heap = Universe::is_in_heap(result);
 
   if (!is_in_heap) {
+    log_trace(gc, heap)("oop at " PTR_FORMAT " is not in the heap!", result);
     assert(false, "object not in heap " PTR_FORMAT, p2i(result));
   }
   assert(Universe::is_in_heap(result), "object not in heap " PTR_FORMAT, p2i(result));
