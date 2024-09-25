@@ -53,11 +53,13 @@ class oopDesc {
   friend class JVMCIVMStructs;
  private:
   volatile markWord _mark;
+ public:
   union _metadata {
     Klass*      _klass;
     narrowKlass _compressed_klass;
   } _metadata;
 
+ private:
   // There may be ordering constraints on the initialization of fields that
   // make use of the C++ copy/assign incorrect.
   NONCOPYABLE(oopDesc);

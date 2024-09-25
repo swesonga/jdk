@@ -890,6 +890,46 @@ oop DefNewGeneration::copy_to_survivor_space(oop old) {
   size_t s = old->size();
   oop obj = nullptr;
 
+  if (EnableRiskyCustomDebugCode
+    && old->_metadata._klass != nullptr
+    && old->_metadata._klass->_name != nullptr
+    && old->_metadata._klass->_name->_length == 23
+    ) {
+    char* the_body_name = (char*)&old->_metadata._klass->_name->_body[0];
+    if (the_body_name[0] == 'j'
+      && the_body_name[1] == 'a'
+      && the_body_name[2] == 'v'
+      && the_body_name[3] == 'a'
+      && the_body_name[4] == '/'
+      && the_body_name[5] == 'l'
+      && the_body_name[6] == 'a'
+      && the_body_name[7] == 'n'
+      && the_body_name[8] == 'g'
+      && the_body_name[9] == '/'
+      && the_body_name[10] == 'V'
+      && the_body_name[11] == 'i'
+      && the_body_name[12] == 'r'
+      && the_body_name[13] == 't'
+      && the_body_name[14] == 'u'
+      && the_body_name[15] == 'a'
+      && the_body_name[16] == 'l'
+      && the_body_name[17] == 'T'
+      && the_body_name[18] == 'h'
+      && the_body_name[19] == 'r'
+      && the_body_name[20] == 'e'
+      && the_body_name[21] == 'a'
+      && the_body_name[22] == 'd'
+    ) {
+      bool found_it = true;
+      log_trace(gc, heap)(
+          "Found a java/lang/VirtualThread at " PTR_FORMAT " with old->_metadata._klass " PTR_FORMAT " and old->_metadata._klass->_name " PTR_FORMAT,
+            old,
+            old->_metadata._klass,
+            old->_metadata._klass->_name
+            );
+    }
+  }
+
   // Try allocating obj in to-space (unless too old)
   if (old->age() < tenuring_threshold()) {
     obj = cast_to_oop(to()->allocate(s));

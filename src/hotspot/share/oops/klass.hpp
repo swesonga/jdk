@@ -133,10 +133,12 @@ class Klass : public Metadata {
   // secondary supers, else is &_primary_supers[depth()].
   juint       _super_check_offset;
 
+ public:
   // Class name.  Instance classes: java/lang/String, etc.  Array classes: [I,
   // [Ljava/lang/String;, etc.  Set to zero for all other kinds of classes.
   Symbol*     _name;
 
+ protected:
   // Cache of last observed secondary supertype
   Klass*      _secondary_super_cache;
   // Array of all secondary supertypes

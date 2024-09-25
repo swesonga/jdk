@@ -112,9 +112,11 @@ class Symbol : public MetaspaceObj {
   // This is an int because it needs atomic operation on the refcount.  Mask hash
   // in high half word. length is the number of UTF8 characters in the symbol
   volatile uint32_t _hash_and_refcount;
+ public:
   u2 _length;
   u1 _body[2];
 
+ private:
   static Symbol* _vm_symbols[];
 
   enum {
