@@ -50,6 +50,11 @@
           "A custom desired heap size when a heap size change is needed. "  \
           " This is useful for testing the shrink/expand functions.")       \
           range(0, max_uintx)                                               \
+                                                                            \
+  develop(bool, EnableRiskyCustomDebugCode, false,                          \
+          "When enabled, executes special debugging code that could "       \
+          " potentially segfault, for example, by reading invalid memory "  \
+          " locations.")   \
 
 // end of GC_SERIAL_FLAGS
 
