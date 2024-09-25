@@ -930,6 +930,8 @@ oop DefNewGeneration::copy_to_survivor_space(oop old) {
     // processing expects to refer to a from-space object.
     _string_dedup_requests.add(old);
   }
+
+  log_trace(gc, heap)("Copied an oop at " PTR_FORMAT " to survivor space at " PTR_FORMAT, old, obj);
   return obj;
 }
 
