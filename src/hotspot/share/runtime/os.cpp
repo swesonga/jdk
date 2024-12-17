@@ -91,6 +91,9 @@
 # include <signal.h>
 # include <errno.h>
 
+#include <deque>
+std::deque<std::pair<double, double>> q;
+
 OSThread*         os::_starting_thread    = nullptr;
 volatile unsigned int os::_rand_seed      = 1234567;
 int               os::_processor_count    = 0;
