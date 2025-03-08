@@ -171,6 +171,7 @@ public:
 
   // Resize one of the regions covered by the remembered set.
   void resize_covered_region(MemRegion new_region);
+  void resize_covered_region_shared_virtual_space(MemRegion new_region0, MemRegion new_region1);
 
   // *** Card-table-RemSet-specific things.
 

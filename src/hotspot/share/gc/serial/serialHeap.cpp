@@ -188,12 +188,28 @@ jint SerialHeap::initialize() {
 
   initialize_reserved_region(heap_rs);
 
+  if (SharedSerialGCVirtualSpace) {
+    _shared_virtual_space = new SerialGCVirtualSpace();
+    shared_virtual_space()->initialize(heap_rs, OldSize, NewSize);
+  }
+
   _rem_set = new CardTableRS(_reserved);
 
   if (SwapSerialGCGenerations) {
     ReservedSpace old_rs = heap_rs.first_part(MaxOldSize, GenAlignment);
     ReservedSpace young_rs = heap_rs.last_part(MaxOldSize, GenAlignment);
-    _rem_set->initialize(old_rs.base(), young_rs.base());
+
+    if (SharedSerialGCVirtualSpace) {
+      MemRegion tenured_region = shared_virtual_space()->tenured_region();
+      MemRegion young_region = shared_virtual_space()->young_region();
+      assert(young_region.start() == tenured_region.end(),
+             "region1 must start at the end of region0");
+
+      _rem_set->initialize((void*)tenured_region.start(), (void*)young_region.start());
+    } else {
+      _rem_set->initialize(old_rs.base(), young_rs.base());
+    }
+
     _young_gen = new DefNewGeneration(young_rs, NewSize, MinNewSize, MaxNewSize);
     _old_gen = new TenuredGeneration(old_rs, OldSize, MinOldSize, MaxOldSize, rem_set());
   } else {
@@ -679,8 +695,17 @@ void SerialHeap::do_full_collection(bool clear_all_soft_refs) {
   COMPILER2_OR_JVMCI_PRESENT(DerivedPointerTable::update_pointers());
 
   // Adjust generation sizes.
-  _old_gen->compute_new_size();
-  _young_gen->compute_new_size();
+  if (SharedSerialGCVirtualSpace) {
+    size_t tenured_gen_size = _old_gen->compute_new_size();
+    size_t young_gen_size = _young_gen->compute_new_size();
+
+    _shared_virtual_space->resize(tenured_gen_size, young_gen_size);
+    rem_set()->resize_covered_region_shared_virtual_space(_shared_virtual_space->tenured_region(),
+                                                          _shared_virtual_space->young_region());
+  } else {
+    _old_gen->resize();
+    _young_gen->resize();
+  }
 
   // Delete metaspaces for unloaded class loaders and clean up loader_data graph
   ClassLoaderDataGraph::purge(/*at_safepoint*/true);

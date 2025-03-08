@@ -68,6 +68,9 @@ class Generation: public CHeapObj<mtGC> {
   // other generations.
   MemRegion _reserved;
 
+  // addresses for committed memory for this generation
+  MemRegion _committed;
+
   // Memory area reserved for generation
   VirtualSpace _virtual_space;
 

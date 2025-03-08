@@ -231,11 +231,20 @@ DefNewGeneration::DefNewGeneration(ReservedSpace rs,
     _promo_failure_drain_in_progress(false),
     _string_dedup_requests()
 {
-  MemRegion cmr((HeapWord*)_virtual_space.low(),
-                (HeapWord*)_virtual_space.high());
   SerialHeap* gch = SerialHeap::heap();
 
-  gch->rem_set()->resize_covered_region(cmr);
+  uintx size;
+  if (SharedSerialGCVirtualSpace) {
+    _committed = gch->shared_virtual_space()->young_region();
+    size = gch->shared_virtual_space()->max_new_size();
+  } else {
+    HeapWord* committed_low = (HeapWord*)_virtual_space.low();
+    HeapWord* committed_high = (HeapWord*)_virtual_space.high();
+    _committed = MemRegion(committed_low, committed_high);
+    size = _virtual_space.reserved_size();
+  }
+
+  gch->rem_set()->resize_covered_region(_committed);
 
   _eden_space = new ContiguousSpace();
   _from_space = new ContiguousSpace();
@@ -244,7 +253,6 @@ DefNewGeneration::DefNewGeneration(ReservedSpace rs,
   // Compute the maximum eden and survivor space sizes. These sizes
   // are computed assuming the entire reserved space is committed.
   // These values are exported as performance counters.
-  uintx size = _virtual_space.reserved_size();
   _max_survivor_size = compute_survivor_size(size, SpaceAlignment);
   _max_eden_size = size - (2*_max_survivor_size);
 
@@ -252,7 +260,7 @@ DefNewGeneration::DefNewGeneration(ReservedSpace rs,
 
   // Generation counters -- generation 0, 3 subspaces
   _gen_counters = new GenerationCounters("new", 0, 3,
-      min_size, max_size, _virtual_space.committed_size());
+      min_size, max_size, _committed.byte_size());
   _gc_counters = new CollectorCounters(policy, 0);
 
   _eden_counters = new CSpaceCounters("eden", 0, _max_eden_size, _eden_space,
@@ -262,7 +270,7 @@ DefNewGeneration::DefNewGeneration(ReservedSpace rs,
   _to_counters = new CSpaceCounters("s1", 2, _max_survivor_size, _to_space,
                                     _gen_counters);
 
-  compute_space_boundaries(0, SpaceDecorator::Clear, SpaceDecorator::Mangle);
+  compute_space_boundaries(0, SpaceDecorator::Clear, SpaceDecorator::Mangle, (char*)_committed.start());
   update_counters();
   _old_gen = nullptr;
   _tenuring_threshold = MaxTenuringThreshold;
@@ -277,7 +285,8 @@ DefNewGeneration::DefNewGeneration(ReservedSpace rs,
 
 void DefNewGeneration::compute_space_boundaries(uintx minimum_eden_size,
                                                 bool clear_space,
-                                                bool mangle_space) {
+                                                bool mangle_space,
+                                                char* eden_start) {
   // If the spaces are being cleared (only done at heap initialization
   // currently), the survivor spaces need not be empty.
   // Otherwise, no care is taken for used areas in the survivor spaces
@@ -286,7 +295,7 @@ void DefNewGeneration::compute_space_boundaries(uintx minimum_eden_size,
     "Initialization of the survivor spaces assumes these are empty");
 
   // Compute sizes
-  uintx size = _virtual_space.committed_size();
+  uintx size = committed_size();
   uintx survivor_size = compute_survivor_size(size, SpaceAlignment);
   uintx eden_size = size - (2*survivor_size);
   if (eden_size > max_eden_size()) {
@@ -311,12 +320,14 @@ void DefNewGeneration::compute_space_boundaries(uintx minimum_eden_size,
     assert(eden_size >= minimum_eden_size, "just checking");
   }
 
-  char *eden_start = _virtual_space.low();
   char *from_start = eden_start + eden_size;
   char *to_start   = from_start + survivor_size;
   char *to_end     = to_start   + survivor_size;
 
-  assert(to_end == _virtual_space.high(), "just checking");
+  if (!SharedSerialGCVirtualSpace) {
+    assert(to_end == _virtual_space.high(), "just checking");
+  }
+
   assert(is_aligned(eden_start, SpaceAlignment), "checking alignment");
   assert(is_aligned(from_start, SpaceAlignment), "checking alignment");
   assert(is_aligned(to_start, SpaceAlignment),   "checking alignment");
@@ -404,21 +415,39 @@ size_t DefNewGeneration::adjust_for_thread_increase(size_t new_size_candidate,
   return desired_new_size;
 }
 
-void DefNewGeneration::compute_new_size() {
+size_t DefNewGeneration::committed_size() const {
+  if (SharedSerialGCVirtualSpace) {
+    MemRegion young_region = SerialHeap::heap()->shared_virtual_space()->young_region();
+    return young_region.byte_size();
+  } else {
+    return _virtual_space.committed_size();
+  }
+}
+
+size_t DefNewGeneration::compute_new_size(size_t* thread_incr_size, int* thread_count) {
+  size_t curr_committed_size = committed_size();
+
   // This is called after a GC that includes the old generation, so from-space
   // will normally be empty.
   // Note that we check both spaces, since if scavenge failed they revert roles.
   // If not we bail out (otherwise we would have to relocate the objects).
   if (!from()->is_empty() || !to()->is_empty()) {
-    return;
+    return curr_committed_size;
   }
 
   SerialHeap* gch = SerialHeap::heap();
 
   size_t old_size = gch->old_gen()->capacity();
-  size_t new_size_before = _virtual_space.committed_size();
+  size_t new_size_before = committed_size();
   size_t min_new_size = NewSize;
-  size_t max_new_size = reserved().byte_size();
+
+  size_t max_new_size;
+  if (SharedSerialGCVirtualSpace) {
+    max_new_size = gch->shared_virtual_space()->max_new_size();
+  } else {
+    max_new_size = reserved().byte_size();
+  }
+  assert(max_new_size != 0, "max_new_size must not be 0");
   assert(min_new_size <= new_size_before &&
          new_size_before <= max_new_size,
          "just checking");
@@ -438,6 +467,24 @@ void DefNewGeneration::compute_new_size() {
   desired_new_size = clamp(desired_new_size, min_new_size, max_new_size);
   assert(desired_new_size <= max_new_size, "just checking");
 
+  if (thread_incr_size != nullptr) {
+    *thread_incr_size = thread_increase_size;
+  }
+
+  if (thread_count != nullptr) {
+    *thread_count = threads_count;
+  }
+
+  return desired_new_size;
+}
+
+void DefNewGeneration::resize() {
+  size_t thread_increase_size = 0;
+  int threads_count = 0;
+
+  size_t new_size_before = committed_size();
+  size_t desired_new_size = compute_new_size(&thread_increase_size, &threads_count);
+  size_t alignment = Generation::GenGrain;
   bool changed = false;
   if (desired_new_size > new_size_before) {
     size_t change = desired_new_size - new_size_before;
@@ -458,12 +505,21 @@ void DefNewGeneration::compute_new_size() {
     changed = true;
   }
   if (changed) {
+    SerialHeap* gch = SerialHeap::heap();
+    char* eden_start;
+    if (!SharedSerialGCVirtualSpace) {
+      eden_start = _virtual_space.low();
+    } else {
+      eden_start = (char*)gch->shared_virtual_space()->young_region().start();
+    }
+
     // The spaces have already been mangled at this point but
     // may not have been cleared (set top = bottom) and should be.
     // Mangling was done when the heap was being expanded.
     compute_space_boundaries(eden()->used(),
                              SpaceDecorator::Clear,
-                             SpaceDecorator::DontMangle);
+                             SpaceDecorator::DontMangle,
+                             eden_start);
     MemRegion cmr((HeapWord*)_virtual_space.low(),
                   (HeapWord*)_virtual_space.high());
     gch->rem_set()->resize_covered_region(cmr);
@@ -475,13 +531,20 @@ void DefNewGeneration::compute_new_size() {
     log_trace(gc, ergo, heap)(
         "  [allowed %zuK extra for %d threads]",
           thread_increase_size/K, threads_count);
-      }
+  }
 }
 
 void DefNewGeneration::ref_processor_init() {
   assert(_ref_processor == nullptr, "a reference processor already exists");
-  assert(!_reserved.is_empty(), "empty generation?");
-  _span_based_discoverer.set_span(_reserved);
+
+  if (SharedSerialGCVirtualSpace) {
+    assert(_reserved.is_empty(), "_reserved must be empty in young generation");
+    _span_based_discoverer.set_span(_committed);
+  } else {
+    assert(!_reserved.is_empty(), "empty generation?");
+    _span_based_discoverer.set_span(_reserved);
+  }
+
   _ref_processor = new ReferenceProcessor(&_span_based_discoverer);    // a vanilla reference processor
 }
 
@@ -816,7 +879,7 @@ void DefNewGeneration::update_counters() {
     _eden_counters->update_all();
     _from_counters->update_all();
     _to_counters->update_all();
-    _gen_counters->update_all(_virtual_space.committed_size());
+    _gen_counters->update_all(committed_size());
   }
 }
 
