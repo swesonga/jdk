@@ -374,14 +374,28 @@ void CardTable::resize_covered_region_shared_virtual_space(MemRegion new_region0
   _covered[young_gen_idx] = new_region1;
 
   // Debug code
-  log_debug(gc, barrier)("   new_region0.start():         " PTR_FORMAT "  new_region0.last(): " PTR_FORMAT " new_region0.end(): " PTR_FORMAT,
-                         p2i(new_region0.start()), p2i(new_region0.last()), p2i(new_region0.end()));
-  log_debug(gc, barrier)("   new_region1.start():         " PTR_FORMAT "  new_region1.last(): " PTR_FORMAT " new_region1.end(): " PTR_FORMAT,
-                         p2i(new_region1.start()), p2i(new_region1.last()), p2i(new_region1.end()));
-  log_debug(gc, barrier)("    committed_tenured.start():  " PTR_FORMAT "  committed_tenured.last():           " PTR_FORMAT,
+  log_debug(gc, barrier)("CardTable::resize_covered_region_shared_virtual_space: ");
+  log_debug(gc, barrier)("    prev_committed.start():              " PTR_FORMAT "  prev_committed.last():              " PTR_FORMAT,
+                         p2i(prev_committed.start()), p2i(prev_committed.last()));
+  log_debug(gc, barrier)("    new_committed_start:                 " PTR_FORMAT "  new_committed_last:                 " PTR_FORMAT,
+                         p2i(new_committed.start()), p2i(new_committed.last()));
+  log_debug(gc, barrier)("    committed_tenured.start():           " PTR_FORMAT "  committed_tenured.last():           " PTR_FORMAT,
                          p2i(committed_tenured.start()), p2i(committed_tenured.last()));
-  log_debug(gc, barrier)("    committed_young.start():    " PTR_FORMAT "  committed_young.last():             " PTR_FORMAT,
+  log_debug(gc, barrier)("    committed_young.start():             " PTR_FORMAT "  committed_young.last():             " PTR_FORMAT,
                          p2i(committed_young.start()), p2i(committed_young.last()));
+  log_debug(gc, barrier)("    addr_for(committed_tenured.start()): " PTR_FORMAT "  addr_for(committed_tenured.last()): " PTR_FORMAT,
+                         p2i(addr_for((CardValue*) committed_tenured.start())),  p2i(addr_for((CardValue*) committed_tenured.last())));
+  log_debug(gc, barrier)("    addr_for(committed_young.start()):   " PTR_FORMAT "  addr_for(committed_young.last()):   " PTR_FORMAT,
+                         p2i(addr_for((CardValue*) committed_young.start())),  p2i(addr_for((CardValue*) committed_young.last())));
+
+  for (int idx=0; idx < 2; idx++) {
+    log_debug(gc, barrier)("    _covered[%d].start():           " PTR_FORMAT "  _covered[%d].last(): " PTR_FORMAT,
+                            idx, p2i(_covered[idx].start()),
+                            idx, p2i(_covered[idx].last()));
+    log_debug(gc, barrier)("    byte_for(_covered[%d].start()): " PTR_FORMAT "  byte_for(_covered[%d].last()): " PTR_FORMAT,
+                           idx, p2i(byte_for(_covered[idx].start())),
+                           idx, p2i(byte_for(_covered[idx].last())));
+  }
 
   assert(committed_tenured.last() < committed_young.start(), "last word of tenured must be less than first word of young gen");
   assert(committed_young.last() <= new_committed.last(), "last word of young gen must be in committed card table memory");
@@ -427,29 +441,6 @@ void CardTable::resize_covered_region_shared_virtual_space(MemRegion new_region0
                            p2i(tenured_delta.start()), p2i(tenured_delta.last()));
 
     memset(tenured_delta.start(), clean_card, tenured_delta.byte_size());
-  }
-
-  log_debug(gc, barrier)("CardTable::resize_covered_region_shared_virtual_space: ");
-  log_debug(gc, barrier)("    prev_committed.start():              " PTR_FORMAT "  prev_committed.last():              " PTR_FORMAT,
-                         p2i(prev_committed.start()), p2i(prev_committed.last()));
-  log_debug(gc, barrier)("    new_committed_start:                 " PTR_FORMAT "  new_committed_last:                 " PTR_FORMAT,
-                         p2i(new_committed.start()), p2i(new_committed.last()));
-  log_debug(gc, barrier)("    committed_tenured.start():           " PTR_FORMAT "  committed_tenured.last():           " PTR_FORMAT,
-                         p2i(committed_tenured.start()), p2i(committed_tenured.last()));
-  log_debug(gc, barrier)("    committed_young.start():             " PTR_FORMAT "  committed_young.last():             " PTR_FORMAT,
-                         p2i(committed_young.start()), p2i(committed_young.last()));
-  log_debug(gc, barrier)("    addr_for(committed_tenured.start()): " PTR_FORMAT "  addr_for(committed_tenured.last()): " PTR_FORMAT,
-                         p2i(addr_for((CardValue*) committed_tenured.start())),  p2i(addr_for((CardValue*) committed_tenured.last())));
-  log_debug(gc, barrier)("    addr_for(committed_young.start()):   " PTR_FORMAT "  addr_for(committed_young.last()):   " PTR_FORMAT,
-                         p2i(addr_for((CardValue*) committed_young.start())),  p2i(addr_for((CardValue*) committed_young.last())));
-
-  for (int idx=0; idx < 2; idx++) {
-    log_debug(gc, barrier)("    _covered[%d].start():           " PTR_FORMAT "  _covered[%d].last(): " PTR_FORMAT,
-                            idx, p2i(_covered[idx].start()),
-                            idx, p2i(_covered[idx].last()));
-    log_debug(gc, barrier)("    byte_for(_covered[%d].start()): " PTR_FORMAT "  byte_for(_covered[%d].last()): " PTR_FORMAT,
-                           idx, p2i(byte_for(_covered[idx].start())),
-                           idx, p2i(byte_for(_covered[idx].last())));
   }
 
 #ifdef ASSERT
