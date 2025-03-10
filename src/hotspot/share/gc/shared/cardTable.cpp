@@ -115,7 +115,7 @@ MemRegion CardTable::committed_for(const MemRegion mr) const {
                    ? addr_l
                    : (HeapWord*)align_up(byte_after(mr.last()), _page_size);
 
-  if (mr.start() == _covered[0].start()) {
+  if (mr.start() == _covered[0].start() && !SharedSerialGCVirtualSpace) {
     // In case the card for gen-boundary is not page-size aligned, the crossing page belongs to _covered[1].
     addr_r = MIN2(addr_r, (HeapWord*)align_down(byte_for(_covered[1].start()), _page_size));
   }
