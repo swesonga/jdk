@@ -26,6 +26,8 @@
 #define SHARE_GC_SERIAL_SERIALGCVIRTUALSPACE_HPP
 
 #include "memory/allocation.hpp"
+#include "memory/memRegion.hpp"
+#include "memory/reservedSpace.hpp"
 #include "memory/virtualspace.hpp"
 
 class SerialGCVirtualSpace: public CHeapObj<mtInternal> {
