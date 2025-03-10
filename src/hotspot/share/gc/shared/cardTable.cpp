@@ -331,16 +331,18 @@ void CardTable::resize_covered_region_shared_virtual_space(MemRegion new_region0
     MemRegion delta = MemRegion(prev_committed.end(),
                                 new_committed.word_size() - prev_committed.word_size());
 
-    log_debug(gc, barrier)("CardTable resizing covered region, expanding committed card table region: ");
-    log_debug(gc, barrier)("    new_committed_start: " PTR_FORMAT "  new_committed_last: " PTR_FORMAT,
+    size_t delta_byte_size = delta.byte_size();
+
+    log_debug(gc, barrier)("CardTable resizing covered region, expanding committed card table region by %zu bytes", delta_byte_size);
+    log_debug(gc, barrier)("    new_committed.start(): " PTR_FORMAT "  new_committed.last(): " PTR_FORMAT,
                            p2i(new_committed.start()), p2i(new_committed.last()));
-    log_debug(gc, barrier)("    addr_for(start):     " PTR_FORMAT "  addr_for(last):     " PTR_FORMAT,
+    log_debug(gc, barrier)("    addr_for(start):       " PTR_FORMAT "  addr_for(last):       " PTR_FORMAT,
                            p2i(addr_for((CardValue*) new_committed.start())),  p2i(addr_for((CardValue*) new_committed.last())));
-    log_debug(gc, barrier)("    commit_start:        " PTR_FORMAT "  commit_last:        " PTR_FORMAT,
+    log_debug(gc, barrier)("    commit delta start:    " PTR_FORMAT "  commit delta last:    " PTR_FORMAT,
                            p2i(delta.start()), p2i(delta.last()));
 
     os::commit_memory_or_exit((char*)delta.start(),
-                              delta.byte_size(),
+                              delta_byte_size,
                               _page_size,
                               !ExecMem,
                               "card table expansion");
