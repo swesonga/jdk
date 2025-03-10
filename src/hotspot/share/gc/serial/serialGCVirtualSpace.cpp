@@ -112,7 +112,7 @@ void SerialGCVirtualSpace::resize(size_t tenured_gen_size, size_t young_gen_size
   set_tenured_region(tr);
   set_young_region(yr);
 
-  log_debug(gc, heap)("SerialGCVirtualSpace size %6.1K->%6.1K [young=%6.1K,tenured=%6.1K]",
+  log_debug(gc, heap)("SerialGCVirtualSpace size %6.1fK->%6.1fK [young=%6.1fK,tenured=%6.1fK]",
                       curr_capacity / (double) K,
                       new_capacity / (double) K,
                       _young_region.byte_size() / (double) K,
