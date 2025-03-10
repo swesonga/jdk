@@ -325,6 +325,12 @@ void CardTable::resize_covered_region_shared_virtual_space(MemRegion new_region0
   MemRegion new_committed = committed_for(combined_region);
   assert(new_committed.start() == prev_committed.start(), "start of committed card table memory must not change");
 
+  log_debug(gc, barrier)("CardTable computed combined region: ");
+  log_debug(gc, barrier)("    prev_combined_region.start(): " PTR_FORMAT "  prev_combined_region.end(): " PTR_FORMAT,
+                         p2i(prev_combined_region.start()), p2i(prev_combined_region.end()));
+  log_debug(gc, barrier)("    combined_region.start():      " PTR_FORMAT "  combined_region.end(): " PTR_FORMAT,
+                         p2i(combined_region.start()), p2i(combined_region.end()));
+
   // Adjust the size of the committed space
   if (new_committed.word_size() > prev_committed.word_size()) {
     // Expand.
