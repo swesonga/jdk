@@ -447,8 +447,8 @@ void CardTable::resize_covered_region_shared_virtual_space(MemRegion new_region0
   // Touch the last card of the covered region to show that it
   // is committed (or SEGV).
   if (is_init_completed()) {
+    HeapWord* p = _covered[old_gen_idx].start();
     for (size_t i=0; i < new_committed.word_size(); i++) {
-      HeapWord* p = _covered[young_gen_idx].last();
       (void) (*(volatile CardValue*)byte_for(&p[i]));
     }
   }
