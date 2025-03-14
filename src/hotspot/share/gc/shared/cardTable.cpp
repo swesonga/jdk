@@ -275,6 +275,55 @@ void CardTable::print_on(outputStream* st) const {
                p2i(_byte_map), p2i(_byte_map + _byte_map_size), p2i(_byte_map_base));
 }
 
+/*
+ Fix assertion failure when running this command:
+
+ export CURRDATE=`date +%Y-%m-%d_%H%M%S`; time $JAVA_HOME_d_java_forks_dups4/bin/java -Xmx1879048192 -XX:+UseSerialGC -XX:+UnlockExperimentalVMOptions -XX:+SharedSerialGCVirtualSpace -XX:+UseCompressedOops -XX:HeapBaseMinAddress=0x120000000000 -Xint -Xlog:gc*=trace,safepoint:file=gclogs/serialgc.$CURRDATE.log::filecount=0 -Xlog:pagesize=trace:file=pagesize.$CURRDATE.txt::filecount=0 -Xlog:os=trace:file=os.$CURRDATE.txt::filecount=0 org.swesonga.math.Factorize -threads 4 -number 7438880205542315091371423981777 -systemGCFrequency 1048576
+
+#  Internal Error (d:\java\forks\dups4\openjdk\jdk\src\hotspot\share\gc\shared\cardTable.cpp:409), pid=64712, tid=43048
+#  assert(committed_tenured.last() < committed_young.start()) failed: last word of tenured must be less than first word of young gen
+
+ [7.761s][debug][gc,barrier           ] GC(0) CardTable::resize_covered_region_shared_virtual_space: 
+ [7.761s][debug][gc,barrier           ] GC(0)     prev_committed.start():              0x0000016ac0310000  prev_committed.last():              0x0000016ac070dff8
+ [7.761s][debug][gc,barrier           ] GC(0)     new_committed_start:                 0x0000016ac0310000  new_committed_last:                 0x0000016ac070eff8
+ [7.761s][debug][gc,barrier           ] GC(0)     committed_tenured.start():           0x0000016ac0310000  committed_tenured.last():           0x0000016ac05b9ff8
+ [7.761s][debug][gc,barrier           ] GC(0)     committed_young.start():             0x0000016ac05b9000  committed_young.last():             0x0000016ac070eff8
+ [7.761s][debug][gc,barrier           ] GC(0)     addr_for(committed_tenured.start()): 0x0000120000200000  addr_for(committed_tenured.last()): 0x00001200555ff000
+ [7.761s][debug][gc,barrier           ] GC(0)     addr_for(committed_young.start()):   0x0000120055400000  addr_for(committed_young.last()):   0x000012007ffff000
+ [7.761s][debug][gc,barrier           ] GC(0)     _covered[0].start():           0x0000120000200000  _covered[0].last(): 0x00001200554afff8
+ [7.761s][debug][gc,barrier           ] GC(0)     byte_for(_covered[0].start()): 0x0000016ac0310000  byte_for(_covered[0].last()): 0x0000016ac05b957f
+ [7.761s][debug][gc,barrier           ] GC(0)     _covered[1].start():           0x00001200554b0000  _covered[1].last(): 0x000012007fe2fff8
+ [7.761s][debug][gc,barrier           ] GC(0)     byte_for(_covered[1].start()): 0x0000016ac05b9580  byte_for(_covered[1].last()): 0x0000016ac070e17f
+*/
+MemRegion CardTable::committed_for_in_shared_virtual_space(const MemRegion mr) const {
+  HeapWord* addr_l = (HeapWord*)byte_for(mr.start());
+
+  log_debug(gc, barrier)("CardTable::committed_for_in_shared_virtual_space: ");
+  log_debug(gc, barrier)("    mr.start():                          " PTR_FORMAT "  mr.last():                          " PTR_FORMAT,
+                         p2i(mr.start()), p2i(mr.last()));
+  log_debug(gc, barrier)("    byte_for(mr.start()):                " PTR_FORMAT, p2i(addr_l));
+
+  if (mr.start() == _covered[0].start()) {
+    addr_l = (HeapWord*)align_down(addr_l, _page_size);
+    log_debug(gc, barrier)("    aligned byte_for(mr.start()):        " PTR_FORMAT, p2i(addr_l));
+  }
+
+  HeapWord* addr_r;
+  if (mr.is_empty()) {
+    addr_r = addr_l;
+  } else {
+    addr_r = (HeapWord*)byte_after(mr.last());
+    log_debug(gc, barrier)("    byte_after(mr.last()):               " PTR_FORMAT, p2i(addr_r));
+
+    if (mr.start() == _covered[1].start()) {
+      addr_r = (HeapWord*)align_up(addr_r, _page_size);
+      log_debug(gc, barrier)("    aligned byte_after(mr.last()):       " PTR_FORMAT, p2i(addr_r));
+    }
+  }
+
+  return MemRegion(addr_l, addr_r);
+}
+
 // To resize the young generation only when using a shared virtual space, use the
 // CardTable::resize_covered_region(MemRegion new_region) method because the starting
 // address of the region does not change. That logic should be fine for that scenario.
@@ -319,10 +368,10 @@ void CardTable::resize_covered_region_shared_virtual_space(MemRegion new_region0
   }
 
   MemRegion prev_combined_region = _covered[0]._union(_covered[1]);
-  MemRegion prev_committed = committed_for(prev_combined_region);
+  MemRegion prev_committed = committed_for_in_shared_virtual_space(prev_combined_region);
 
   MemRegion combined_region = new_region0._union(new_region1);
-  MemRegion new_committed = committed_for(combined_region);
+  MemRegion new_committed = committed_for_in_shared_virtual_space(combined_region);
   assert(new_committed.start() == prev_committed.start(), "start of committed card table memory must not change");
 
   log_debug(gc, barrier)("CardTable computed combined region: ");
@@ -375,9 +424,9 @@ void CardTable::resize_covered_region_shared_virtual_space(MemRegion new_region0
     log_debug(gc, barrier)("Committed card table region unchanged");
   }
 
-  MemRegion prev_committed_tenured = committed_for(_covered[old_gen_idx]);
-  MemRegion committed_tenured = committed_for(new_region0);
-  MemRegion committed_young = committed_for(new_region1);
+  MemRegion prev_committed_tenured = committed_for_in_shared_virtual_space(_covered[old_gen_idx]);
+  MemRegion committed_tenured = committed_for_in_shared_virtual_space(new_region0);
+  MemRegion committed_young = committed_for_in_shared_virtual_space(new_region1);
 
   _covered[old_gen_idx] = new_region0;
   _covered[young_gen_idx] = new_region1;
