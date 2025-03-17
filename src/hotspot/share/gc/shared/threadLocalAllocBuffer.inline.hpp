@@ -29,6 +29,7 @@
 
 #include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/tlab_globals.hpp"
+#include "gc/shared/gc_globals.hpp"
 #include "memory/universe.hpp"
 #include "logging/log.hpp"
 #include "runtime/javaThread.hpp"
@@ -46,6 +47,9 @@ inline HeapWord* ThreadLocalAllocBuffer::allocate(size_t size) {
     set_top(obj + size);
 
     invariants();
+    if (LogAllocationDetails) {
+      log_trace(gc, tlab)("ThreadLocalAllocBuffer::allocate allocated %zu HeapWords at " PTR_FORMAT, size, p2i(obj));
+    }
     return obj;
   }
   return nullptr;

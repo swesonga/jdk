@@ -43,6 +43,10 @@
   product(bool, SwapSerialGCGenerations, false, EXPERIMENTAL,               \
           "When enabled, informs the GC to place the tenured region before" \
           " the young region in memory.")                                   \
+                                                                            \
+  product(bool, LogAllocationDetails, false, EXPERIMENTAL,                  \
+          "When enabled, informs the GC to log all allocation details such" \
+          " as size and address of every allocation.")                      \
 
 // end of GC_SERIAL_FLAGS
 

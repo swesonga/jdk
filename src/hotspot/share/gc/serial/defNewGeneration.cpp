@@ -806,6 +806,10 @@ void DefNewGeneration::handle_promotion_failure(oop old) {
 }
 
 oop DefNewGeneration::copy_to_survivor_space(oop old) {
+  if (LogAllocationDetails) {
+    log_trace(gc, heap)("Entering DefNewGeneration::copy_to_survivor_space(oop old = " PTR_FORMAT ")", p2i(old));
+  }
+
   assert(is_in_reserved(old) && !old->is_forwarded(),
          "shouldn't be scavenging this oop");
   size_t s = old->size();
@@ -813,12 +817,20 @@ oop DefNewGeneration::copy_to_survivor_space(oop old) {
 
   // Try allocating obj in to-space (unless too old)
   if (old->age() < tenuring_threshold()) {
+    if (LogAllocationDetails) {
+      log_trace(gc, heap)("DefNewGeneration::copy_to_survivor_space(oop old = " PTR_FORMAT ") - Try allocating obj in to-space (unless too old)",
+                                  p2i(old));
+    }
     obj = cast_to_oop(to()->allocate(s));
   }
 
   bool new_obj_is_tenured = false;
   // Otherwise try allocating obj tenured
   if (obj == nullptr) {
+    if (LogAllocationDetails) {
+      log_trace(gc, heap)("DefNewGeneration::copy_to_survivor_space(oop old = " PTR_FORMAT ") - Otherwise try allocating obj tenured",
+                                  p2i(old));
+    }
     obj = _old_gen->allocate_for_promotion(old, s);
     if (obj == nullptr) {
       handle_promotion_failure(old);
@@ -828,28 +840,53 @@ oop DefNewGeneration::copy_to_survivor_space(oop old) {
     new_obj_is_tenured = true;
   }
 
+  if (LogAllocationDetails) {
+    log_trace(gc, heap)("DefNewGeneration::copy_to_survivor_space(oop old = " PTR_FORMAT ") prefetching: " PTR_FORMAT, p2i(old), p2i(obj));
+  }
+
   // Prefetch beyond obj
   const intx interval = PrefetchCopyIntervalInBytes;
   Prefetch::write(obj, interval);
 
   // Copy obj
+  if (LogAllocationDetails) {
+    log_trace(gc, heap)("DefNewGeneration::copy_to_survivor_space(oop old = " PTR_FORMAT ") Copy %zu words from old to obj at: " PTR_FORMAT, p2i(old), s, p2i(obj));
+  }
   Copy::aligned_disjoint_words(cast_from_oop<HeapWord*>(old), cast_from_oop<HeapWord*>(obj), s);
+
+  if (LogAllocationDetails) {
+    log_trace(gc, heap)("DefNewGeneration::copy_to_survivor_space(oop old = " PTR_FORMAT ") transform_stack_chunk obj: " PTR_FORMAT, p2i(old), p2i(obj));
+  }
 
   ContinuationGCSupport::transform_stack_chunk(obj);
 
   if (!new_obj_is_tenured) {
     // Increment age if obj still in new generation
+    if (LogAllocationDetails) {
+      log_trace(gc, heap)("DefNewGeneration::copy_to_survivor_space(oop old = " PTR_FORMAT ") Increment age if obj still in new generation: " PTR_FORMAT, p2i(old), p2i(obj));
+    }
     obj->incr_age();
     age_table()->add(obj, s);
   }
 
   // Done, insert forward pointer to obj in this header
+
+  if (LogAllocationDetails) {
+    log_trace(gc, heap)("DefNewGeneration::copy_to_survivor_space(oop old = " PTR_FORMAT ") insert forward pointer to obj in this header: " PTR_FORMAT, p2i(old), p2i(obj));
+  }
   old->forward_to(obj);
 
   if (SerialStringDedup::is_candidate_from_evacuation(obj, new_obj_is_tenured)) {
     // Record old; request adds a new weak reference, which reference
     // processing expects to refer to a from-space object.
+    if (LogAllocationDetails) {
+      log_trace(gc, heap)("DefNewGeneration::copy_to_survivor_space(oop old = " PTR_FORMAT ") _string_dedup_requests.add(old): " PTR_FORMAT, p2i(old), p2i(obj));
+    }
     _string_dedup_requests.add(old);
+  }
+
+  if (LogAllocationDetails) {
+    log_trace(gc, heap)("Exiting DefNewGeneration::copy_to_survivor_space(oop old = " PTR_FORMAT ") -> survivor space: " PTR_FORMAT, p2i(old), p2i(obj));
   }
   return obj;
 }
