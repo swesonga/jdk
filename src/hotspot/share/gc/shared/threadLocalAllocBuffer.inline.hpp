@@ -46,6 +46,9 @@ inline HeapWord* ThreadLocalAllocBuffer::allocate(size_t size) {
     set_top(obj + size);
 
     invariants();
+    if (LogAllocationDetails) {
+      log_develop_trace(gc, tlab)("ThreadLocalAllocBuffer::allocate allocated %d bytes for HeapWords at " PTR_FORMAT, size, obj);
+    }
     return obj;
   }
   return nullptr;
