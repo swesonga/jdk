@@ -454,7 +454,18 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
     Universe::verify("After GC");
   }
 
-  _young_gen->compute_new_size();
+  if (SharedSerialGCVirtualSpace) {
+    size_t tenured_gen_size = _old_gen->compute_new_size();
+    size_t young_gen_size = _young_gen->compute_new_size();
+
+    bool success = _shared_virtual_space->resize(tenured_gen_size, young_gen_size);
+    if (success) {
+      rem_set()->resize_covered_region_shared_virtual_space(_shared_virtual_space->tenured_region(),
+                                                            _shared_virtual_space->young_region());
+    }
+  } else {
+    _young_gen->resize();
+  }
 
   print_heap_change(pre_gc_values);
 
