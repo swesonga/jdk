@@ -113,9 +113,11 @@ inline HeapWord* ContiguousSpace::allocate_impl(size_t size) {
     HeapWord* new_top = obj + size;
     set_top(new_top);
     assert(is_object_aligned(obj) && is_object_aligned(new_top), "checking alignment");
+#if INCLUDE_SERIALGC
     if (LogAllocationDetails) {
       log_develop_trace(gc, heap)("ContiguousSpace::allocate_impl(%zu) returns " PTR_FORMAT, size, p2i(obj));
     }
+#endif
     return obj;
   } else {
     return nullptr;
@@ -134,9 +136,11 @@ inline HeapWord* ContiguousSpace::par_allocate_impl(size_t size) {
       //  otherwise: the new value of the top is returned.
       if (result == obj) {
         assert(is_object_aligned(obj) && is_object_aligned(new_top), "checking alignment");
+#if INCLUDE_SERIALGC
         if (LogAllocationDetails) {
           log_develop_trace(gc, heap)("ContiguousSpace::par_allocate_impl(%zu) returns " PTR_FORMAT, size, p2i(result));
         }
+#endif
         return obj;
       }
     } else {
