@@ -58,7 +58,7 @@ public:
   void set_tenured_region(MemRegion region);
   void set_young_region(MemRegion region);
 
-  void resize(size_t tenured_gen_size, size_t young_gen_size);
+  bool resize(size_t tenured_gen_size, size_t young_gen_size);
 
   size_t max_new_size() const;
 };

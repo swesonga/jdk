@@ -84,9 +84,11 @@ void SerialGCVirtualSpace::set_young_region(MemRegion region) {
   _young_region = region;
 }
 
-void SerialGCVirtualSpace::resize(size_t tenured_gen_size, size_t young_gen_size) {
+bool SerialGCVirtualSpace::resize(size_t tenured_gen_size, size_t young_gen_size) {
   size_t curr_capacity = committed_size();
   size_t new_capacity = tenured_gen_size + young_gen_size;
+
+  bool success;
 
   if (new_capacity > curr_capacity) {
     // If we have less free space than we want then expand
@@ -96,27 +98,35 @@ void SerialGCVirtualSpace::resize(size_t tenured_gen_size, size_t young_gen_size
       expand_bytes = MinHeapDeltaBytes;
     }
 
-    expand_by(expand_bytes); // safe if expansion fails
-    log_trace(gc, heap)("SerialGCVirtualSpace expanding:  new_capacity: %6.1fK  expand_bytes: %6.1fK  MinHeapDeltaBytes: %6.1fK",
+    success = expand_by(expand_bytes); // safe if expansion fails
+    log_trace(gc, heap)("SerialGCVirtualSpace attempting expansion:  new_capacity: %6.1fK  expand_bytes: %6.1fK  MinHeapDeltaBytes: %6.1fK  success: %d",
                   new_capacity / (double) K,
                   expand_bytes / (double) K,
-                  MinHeapDeltaBytes / (double) K);
+                  MinHeapDeltaBytes / (double) K,
+                  success);
   } else if (new_capacity < curr_capacity) {
     size_t shrink_bytes = curr_capacity - new_capacity;
     shrink_by(shrink_bytes);
+    success = true;
   }
 
-  // update young and tenured regions
-  MemRegion tr(_tenured_region.start(), heap_word_size(tenured_gen_size));
-  MemRegion yr = _heap_region.minus(tr);
-  set_tenured_region(tr);
-  set_young_region(yr);
+  new_capacity = committed_size();
+
+  if (success) {
+    // update young and tenured regions
+    MemRegion tr(_tenured_region.start(), heap_word_size(tenured_gen_size));
+    MemRegion yr = _heap_region.minus(tr);
+    set_tenured_region(tr);
+    set_young_region(yr);
+  }
 
   log_debug(gc, heap)("SerialGCVirtualSpace size %6.1fK->%6.1fK [young=%6.1fK,tenured=%6.1fK]",
                       curr_capacity / (double) K,
                       new_capacity / (double) K,
                       _young_region.byte_size() / (double) K,
                       _tenured_region.byte_size() / (double) K);
+
+  return success;
 }
 
 bool SerialGCVirtualSpace::expand_by(size_t bytes, bool pre_touch) {
