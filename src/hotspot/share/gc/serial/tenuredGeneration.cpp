@@ -463,10 +463,26 @@ void TenuredGeneration::print_on(outputStream* st)  const {
 
   st->print(" total %zuK, used %zuK",
             capacity()/K, used()/K);
+
+  char* low_boundary;
+  char* high;
+  char* high_boundary;
+
+  if (!SharedSerialGCVirtualSpace) {
+    low_boundary = _virtual_space.low_boundary();
+    high = _virtual_space.high();
+    high_boundary = _virtual_space.high_boundary();
+  } else {
+    MemRegion tenured_region = SerialHeap::heap()->shared_virtual_space()->tenured_region();
+    low_boundary = (char*)tenured_region.start();
+    high_boundary = (char*)tenured_region.end();
+    high = high_boundary;
+  }
+
   st->print_cr(" [" PTR_FORMAT ", " PTR_FORMAT ", " PTR_FORMAT ")",
-               p2i(_virtual_space.low_boundary()),
-               p2i(_virtual_space.high()),
-               p2i(_virtual_space.high_boundary()));
+    p2i(low_boundary),
+    p2i(high),
+    p2i(high_boundary));
 
   st->print("   the");
   _the_space->print_on(st);
