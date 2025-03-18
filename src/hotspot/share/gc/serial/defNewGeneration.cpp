@@ -479,6 +479,7 @@ size_t DefNewGeneration::compute_new_size(size_t* thread_incr_size, int* thread_
 }
 
 void DefNewGeneration::resize() {
+  assert(!SharedSerialGCVirtualSpace, "must not be called when SharedSerialGCVirtualSpace is enabled");
   size_t thread_increase_size = 0;
   int threads_count = 0;
 
@@ -506,12 +507,7 @@ void DefNewGeneration::resize() {
   }
   if (changed) {
     SerialHeap* gch = SerialHeap::heap();
-    char* eden_start;
-    if (!SharedSerialGCVirtualSpace) {
-      eden_start = _virtual_space.low();
-    } else {
-      eden_start = (char*)gch->shared_virtual_space()->young_region().start();
-    }
+    char* eden_start = _virtual_space.low();
 
     // The spaces have already been mangled at this point but
     // may not have been cleared (set top = bottom) and should be.
