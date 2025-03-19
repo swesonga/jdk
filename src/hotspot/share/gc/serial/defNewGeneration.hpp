@@ -133,6 +133,8 @@ class DefNewGeneration: public Generation {
     return n > alignment ? align_down(n, alignment) : alignment;
   }
 
+  void update_span_based_discoverer_to_committed_range();
+
  public:
   DefNewGeneration(ReservedSpace rs,
                    size_t initial_byte_size,
@@ -220,6 +222,7 @@ class DefNewGeneration: public Generation {
   size_t committed_size() const;
   size_t compute_new_size(size_t* thread_incr_size = nullptr, int* thread_count = nullptr);
   void resize();
+  void post_shared_virtual_space_resize(size_t young_gen_size_before);
 
   bool collect(bool clear_all_soft_refs);
 

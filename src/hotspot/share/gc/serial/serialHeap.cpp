@@ -455,12 +455,13 @@ bool SerialHeap::do_young_collection(bool clear_soft_refs) {
   }
 
   if (SharedSerialGCVirtualSpace) {
-    size_t tenured_gen_size = _old_gen->compute_new_size();
+    size_t young_gen_size_before = _shared_virtual_space->young_region().byte_size();
     size_t young_gen_size = _young_gen->compute_new_size();
 
-    bool success = _shared_virtual_space->resize(tenured_gen_size, young_gen_size);
+    bool success = _shared_virtual_space->resize(young_gen_size);
     if (success) {
-      rem_set()->resize_covered_region_shared_virtual_space(_shared_virtual_space->tenured_region(),
+      _young_gen->post_shared_virtual_space_resize(young_gen_size_before);
+      rem_set()->resize_covered_region_in_shared_virtual_space(_shared_virtual_space->tenured_region(),
                                                             _shared_virtual_space->young_region());
     }
   } else {
@@ -707,12 +708,16 @@ void SerialHeap::do_full_collection(bool clear_all_soft_refs) {
 
   // Adjust generation sizes.
   if (SharedSerialGCVirtualSpace) {
+    size_t young_gen_size_before = _shared_virtual_space->young_region().byte_size();
     size_t tenured_gen_size = _old_gen->compute_new_size();
     size_t young_gen_size = _young_gen->compute_new_size();
 
-    _shared_virtual_space->resize(tenured_gen_size, young_gen_size);
-    rem_set()->resize_covered_region_shared_virtual_space(_shared_virtual_space->tenured_region(),
+    bool success = _shared_virtual_space->resize(tenured_gen_size, young_gen_size);
+    if (success) {
+      _young_gen->post_shared_virtual_space_resize(young_gen_size_before);
+      rem_set()->resize_covered_region_in_shared_virtual_space(_shared_virtual_space->tenured_region(),
                                                           _shared_virtual_space->young_region());
+    }
   } else {
     _old_gen->resize();
     _young_gen->resize();

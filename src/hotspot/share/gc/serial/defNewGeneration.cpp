@@ -531,14 +531,35 @@ void DefNewGeneration::ref_processor_init() {
   assert(_ref_processor == nullptr, "a reference processor already exists");
 
   if (SharedSerialGCVirtualSpace) {
-    assert(_reserved.is_empty(), "_reserved must be empty in young generation");
-    _span_based_discoverer.set_span(_committed);
+    update_span_based_discoverer_to_committed_range();
   } else {
     assert(!_reserved.is_empty(), "empty generation?");
     _span_based_discoverer.set_span(_reserved);
   }
 
   _ref_processor = new ReferenceProcessor(&_span_based_discoverer);    // a vanilla reference processor
+}
+
+void DefNewGeneration::update_span_based_discoverer_to_committed_range() {
+  assert(SharedSerialGCVirtualSpace, "must only be called when SharedSerialGCVirtualSpace is enabled");
+  assert(_reserved.is_empty(), "_reserved must be empty in young generation");
+  _span_based_discoverer.set_span(_committed);
+}
+
+void DefNewGeneration::post_shared_virtual_space_resize(size_t young_gen_size_before) {
+  assert(SharedSerialGCVirtualSpace, "must only be called when SharedSerialGCVirtualSpace is enabled");
+  _committed = SerialHeap::heap()->shared_virtual_space()->young_region();
+  update_span_based_discoverer_to_committed_range();
+
+  compute_space_boundaries(eden()->used(),
+                           SpaceDecorator::Clear,
+                           SpaceDecorator::DontMangle,
+                           (char*)_committed.start());
+
+  log_debug(gc, ergo, heap)(
+      "New generation size %zuK->%zuK [eden=%zuK,survivor=%zuK]",
+      young_gen_size_before/K, _committed.byte_size()/K,
+      eden()->capacity()/K, from()->capacity()/K);
 }
 
 size_t DefNewGeneration::capacity() const {
