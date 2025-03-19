@@ -417,29 +417,28 @@ size_t DefNewGeneration::adjust_for_thread_increase(size_t new_size_candidate,
 }
 
 size_t DefNewGeneration::committed_size() const {
-  if (SharedSerialGCVirtualSpace) {
+  if (!SharedSerialGCVirtualSpace) {
+    return _virtual_space.committed_size();
+  } else {
     MemRegion young_region = SerialHeap::heap()->shared_virtual_space()->young_region();
     return young_region.byte_size();
-  } else {
-    return _virtual_space.committed_size();
   }
 }
 
 size_t DefNewGeneration::compute_new_size(size_t* thread_incr_size, int* thread_count) {
-  size_t curr_committed_size = committed_size();
+  size_t new_size_before = committed_size();
 
   // This is called after a GC that includes the old generation, so from-space
   // will normally be empty.
   // Note that we check both spaces, since if scavenge failed they revert roles.
   // If not we bail out (otherwise we would have to relocate the objects).
   if (!from()->is_empty() || !to()->is_empty()) {
-    return curr_committed_size;
+    return new_size_before;
   }
 
   SerialHeap* gch = SerialHeap::heap();
 
   size_t old_size = gch->old_gen()->capacity();
-  size_t new_size_before = committed_size();
   size_t min_new_size = NewSize;
 
   size_t max_new_size;
@@ -507,19 +506,16 @@ void DefNewGeneration::resize() {
     changed = true;
   }
   if (changed) {
-    SerialHeap* gch = SerialHeap::heap();
-    char* eden_start = _virtual_space.low();
-
     // The spaces have already been mangled at this point but
     // may not have been cleared (set top = bottom) and should be.
     // Mangling was done when the heap was being expanded.
     compute_space_boundaries(eden()->used(),
                              SpaceDecorator::Clear,
                              SpaceDecorator::DontMangle,
-                             eden_start);
+                             _virtual_space.low());
     MemRegion cmr((HeapWord*)_virtual_space.low(),
                   (HeapWord*)_virtual_space.high());
-    gch->rem_set()->resize_covered_region(cmr);
+    SerialHeap::heap()->rem_set()->resize_covered_region(cmr);
 
     log_debug(gc, ergo, heap)(
         "New generation size %zuK->%zuK [eden=%zuK,survivor=%zuK]",
