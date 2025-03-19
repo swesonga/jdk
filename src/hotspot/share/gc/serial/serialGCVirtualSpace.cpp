@@ -83,7 +83,7 @@ void SerialGCVirtualSpace::set_young_region(MemRegion region) {
   _young_region = region;
 }
 
-bool SerialGCVirtualSpace::resize(size_t tenured_gen_size, size_t young_gen_size) {
+bool SerialGCVirtualSpace::resize_virtual_space(size_t tenured_gen_size, size_t young_gen_size) {
   size_t curr_capacity = committed_size();
   size_t new_capacity = tenured_gen_size + young_gen_size;
 
@@ -108,7 +108,19 @@ bool SerialGCVirtualSpace::resize(size_t tenured_gen_size, size_t young_gen_size
     success = true;
   }
 
-  new_capacity = committed_size();
+  if (success) {
+    _heap_region = MemRegion((HeapWord*)_ahs_virtual_space.low(), (HeapWord*)_ahs_virtual_space.high());
+  }
+  return success;
+}
+
+bool SerialGCVirtualSpace::resize(size_t tenured_gen_size, size_t young_gen_size) {
+  assert(tenured_gen_size > 0, "tenured_gen_size must not be 0");
+  assert(young_gen_size > 0, "young_gen_size must not be 0");
+
+  size_t curr_capacity = committed_size();
+  bool success = resize_virtual_space(tenured_gen_size, young_gen_size);
+  size_t new_capacity = committed_size();
 
   if (success) {
     // update young and tenured regions
@@ -120,6 +132,27 @@ bool SerialGCVirtualSpace::resize(size_t tenured_gen_size, size_t young_gen_size
 
   log_trace(gc, heap)("SerialGCVirtualSpace size %6.1fK->%6.1fK [young=%6.1fK,tenured=%6.1fK]",
                       curr_capacity / (double) K,
+                      new_capacity / (double) K,
+                      _young_region.byte_size() / (double) K,
+                      _tenured_region.byte_size() / (double) K);
+
+  return success;
+}
+
+bool SerialGCVirtualSpace::resize(size_t young_gen_size) {
+  assert(young_gen_size > 0, "young_gen_size must not be 0");
+
+  size_t prev_capacity = committed_size();
+  bool success = resize_virtual_space(_tenured_region.byte_size(), young_gen_size);
+
+  if (success) {
+    MemRegion young_region = _heap_region.minus(_tenured_region);
+    set_young_region(young_region);
+  }
+
+  size_t new_capacity = committed_size();
+  log_trace(gc, heap)("SerialGCVirtualSpace size %6.1fK->%6.1fK [young=%6.1fK,tenured=%6.1fK]",
+                      prev_capacity / (double) K,
                       new_capacity / (double) K,
                       _young_region.byte_size() / (double) K,
                       _tenured_region.byte_size() / (double) K);

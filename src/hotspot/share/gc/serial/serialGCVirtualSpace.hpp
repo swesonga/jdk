@@ -41,6 +41,7 @@ private:
   // returns true on success, false otherwise
   bool expand_by(size_t bytes, bool pre_touch = false);
   void shrink_by(size_t bytes);
+  bool resize_virtual_space(size_t tenured_gen_size, size_t young_gen_size);
 
 public:
   SerialGCVirtualSpace() {}
@@ -55,6 +56,7 @@ public:
   void set_tenured_region(MemRegion region);
   void set_young_region(MemRegion region);
 
+  bool resize(size_t young_gen_size);
   bool resize(size_t tenured_gen_size, size_t young_gen_size);
 
   size_t max_new_size() const;
