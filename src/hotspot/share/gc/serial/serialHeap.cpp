@@ -315,7 +315,8 @@ bool SerialHeap::should_try_older_generation_allocation(size_t word_size) const 
 
 HeapWord* SerialHeap::expand_heap_and_allocate(size_t size, bool is_tlab) {
   HeapWord* result = nullptr;
-  if (_old_gen->should_allocate(size, is_tlab)) {
+  // Old gen cannot be expanded independently when SharedSerialGCVirtualSpace is enabled
+  if (!SharedSerialGCVirtualSpace && _old_gen->should_allocate(size, is_tlab)) {
     result = _old_gen->expand_and_allocate(size);
   }
   if (result == nullptr) {
