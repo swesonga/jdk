@@ -104,7 +104,7 @@ class Generation: public CHeapObj<mtGC> {
 
   /* Returns "TRUE" iff "p" points into the reserved area of the generation. */
   bool is_in_reserved(const void* p) const {
-    return _reserved.contains(p);
+    return !SharedSerialGCVirtualSpace ? _reserved.contains(p) : _committed.contains(p);
   }
 
   virtual void verify() = 0;
