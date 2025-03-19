@@ -67,19 +67,19 @@ size_t SerialGCVirtualSpace::committed_size() {
 }
 
 void SerialGCVirtualSpace::set_tenured_region(MemRegion region) {
-  log_debug(gc, heap)("SerialGCVirtualSpace updating tenured region: ");
-  log_debug(gc, heap)("   from _tenured_region.start(): " PTR_FORMAT " _tenured_region.end(): " PTR_FORMAT,
+  log_trace(gc, heap)("SerialGCVirtualSpace updating tenured region: ");
+  log_trace(gc, heap)("   from _tenured_region.start(): " PTR_FORMAT " _tenured_region.end(): " PTR_FORMAT,
                       p2i(_tenured_region.start()), p2i(_tenured_region.end()));
-  log_debug(gc, heap)("   to            region.start(): " PTR_FORMAT "          region.end(): " PTR_FORMAT,
+  log_trace(gc, heap)("   to            region.start(): " PTR_FORMAT "          region.end(): " PTR_FORMAT,
                       p2i(region.start()), p2i(region.end()));
   _tenured_region = region;
 }
 
 void SerialGCVirtualSpace::set_young_region(MemRegion region) {
-  log_debug(gc, heap)("SerialGCVirtualSpace updating young region: ");
-  log_debug(gc, heap)("   from _young_region.start(): " PTR_FORMAT " _young_region.end(): " PTR_FORMAT,
+  log_trace(gc, heap)("SerialGCVirtualSpace updating young region: ");
+  log_trace(gc, heap)("   from _young_region.start(): " PTR_FORMAT " _young_region.end(): " PTR_FORMAT,
                       p2i(_young_region.start()), p2i(_young_region.end()));
-  log_debug(gc, heap)("   to          region.start(): " PTR_FORMAT "        region.end(): " PTR_FORMAT,
+  log_trace(gc, heap)("   to          region.start(): " PTR_FORMAT "        region.end(): " PTR_FORMAT,
                       p2i(region.start()), p2i(region.end()));
   _young_region = region;
 }
@@ -120,7 +120,7 @@ bool SerialGCVirtualSpace::resize(size_t tenured_gen_size, size_t young_gen_size
     set_young_region(yr);
   }
 
-  log_debug(gc, heap)("SerialGCVirtualSpace size %6.1fK->%6.1fK [young=%6.1fK,tenured=%6.1fK]",
+  log_trace(gc, heap)("SerialGCVirtualSpace size %6.1fK->%6.1fK [young=%6.1fK,tenured=%6.1fK]",
                       curr_capacity / (double) K,
                       new_capacity / (double) K,
                       _young_region.byte_size() / (double) K,
