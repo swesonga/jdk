@@ -47,7 +47,7 @@ public:
 
   void initialize(ReservedSpace rs, size_t old_size, size_t new_size);
 
-  size_t committed_size();
+  inline size_t committed_size();
 
   MemRegion tenured_region() { return _tenured_region; }
   MemRegion young_region() { return _young_region; }
