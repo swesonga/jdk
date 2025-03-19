@@ -91,14 +91,13 @@ bool SerialGCVirtualSpace::resize(size_t tenured_gen_size, size_t young_gen_size
   bool success;
 
   if (new_capacity > curr_capacity) {
-    // If we have less free space than we want then expand
     size_t expand_bytes = new_capacity - curr_capacity;
     if (expand_bytes < MinHeapDeltaBytes) {
       // Always expand by at least MinHeapDeltaBytes
       expand_bytes = MinHeapDeltaBytes;
     }
 
-    success = expand_by(expand_bytes); // safe if expansion fails
+    success = expand_by(expand_bytes);
     log_trace(gc, heap)("SerialGCVirtualSpace attempting expansion:  new_capacity: %6.1fK  expand_bytes: %6.1fK  MinHeapDeltaBytes: %6.1fK  success: %d",
                   new_capacity / (double) K,
                   expand_bytes / (double) K,
