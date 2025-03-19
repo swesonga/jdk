@@ -190,7 +190,7 @@ jint SerialHeap::initialize() {
 
   if (SharedSerialGCVirtualSpace) {
     _shared_virtual_space = new SerialGCVirtualSpace();
-    shared_virtual_space()->initialize(heap_rs, OldSize, NewSize);
+    _shared_virtual_space->initialize(heap_rs, OldSize, NewSize);
   }
 
   _rem_set = new CardTableRS(_reserved);
@@ -200,8 +200,8 @@ jint SerialHeap::initialize() {
     ReservedSpace young_rs = heap_rs.last_part(MaxOldSize, GenAlignment);
 
     if (SharedSerialGCVirtualSpace) {
-      MemRegion tenured_region = shared_virtual_space()->tenured_region();
-      MemRegion young_region = shared_virtual_space()->young_region();
+      MemRegion tenured_region = _shared_virtual_space->tenured_region();
+      MemRegion young_region = _shared_virtual_space->young_region();
       assert(young_region.start() == tenured_region.end(),
              "region1 must start at the end of region0");
 
