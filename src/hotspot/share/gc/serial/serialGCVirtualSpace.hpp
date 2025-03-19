@@ -35,10 +35,7 @@ private:
   VirtualSpace _ahs_virtual_space;
   MemRegion _heap_region;
 
-  size_t _old_gen_word_size;
   MemRegion _tenured_region;
-
-  size_t _young_gen_word_size;
   MemRegion _young_region;
 
   // returns true on success, false otherwise

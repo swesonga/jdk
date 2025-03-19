@@ -52,8 +52,7 @@ void SerialGCVirtualSpace::initialize(ReservedSpace rs, size_t old_size, size_t 
     SpaceMangler::mangle_region(_heap_region);
   }
 
-  _old_gen_word_size = heap_word_size(OldSize);
-  MemRegion tenured_region((HeapWord*)_ahs_virtual_space.low(), _old_gen_word_size);
+  MemRegion tenured_region((HeapWord*)_ahs_virtual_space.low(), heap_word_size(OldSize));
   assert(tenured_region.byte_size() == old_size, "_tenured_region size in bytes must match old_size");
   set_tenured_region(tenured_region);
 
