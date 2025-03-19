@@ -59,9 +59,7 @@
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/stack.inline.hpp"
 
-/*
- TODO: update closures to avoid the cost of a method call for is_in_young_gen logic
-*/
+// TODO: update closures to avoid the cost of a method call for is_in_young_gen logic
 class PromoteFailureClosure : public InHeapScanClosure {
   template <typename T>
   void do_oop_work(T* p) {
