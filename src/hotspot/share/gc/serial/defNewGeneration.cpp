@@ -245,14 +245,13 @@ DefNewGeneration::DefNewGeneration(ReservedSpace rs,
     _committed = MemRegion(committed_low, committed_high);
     size = _virtual_space.reserved_size();
    _gen_boundary = SwapSerialGCGenerations ? _reserved.start() : _reserved.end();
-}
+  }
 
   gch->rem_set()->resize_covered_region(_committed);
 
   _eden_space = new ContiguousSpace();
   _from_space = new ContiguousSpace();
   _to_space   = new ContiguousSpace();
-  _gen_boundary = SwapSerialGCGenerations ? _reserved.start() : _reserved.end();
 
   // Compute the maximum eden and survivor space sizes. These sizes
   // are computed assuming the entire reserved space is committed.
