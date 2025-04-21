@@ -966,9 +966,9 @@ void DefNewGeneration::print_on(outputStream* st) const {
   }
 
   st->print_cr(" [" PTR_FORMAT ", " PTR_FORMAT ", " PTR_FORMAT ")",
-    p2i(low_boundary),
-    p2i(high),
-    p2i(high_boundary));
+               p2i(low_boundary),
+               p2i(high),
+               p2i(high_boundary));
 
   st->print("  eden");
   eden()->print_on(st);
