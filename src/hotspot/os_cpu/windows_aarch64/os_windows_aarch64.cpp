@@ -58,8 +58,24 @@
 # include <stdio.h>
 # include <intrin.h>
 
+#include "logging/log.hpp"
+
+JNIEXPORT
+extern LONG WINAPI topLevelExceptionFilter(_EXCEPTION_POINTERS* );
+
+JNIEXPORT
+extern LONG WINAPI topLevelUnhandledExceptionFilter(_EXCEPTION_POINTERS* );
+
+// Install a win32 structured exception handler around thread.
 void os::os_exception_wrapper(java_call_t f, JavaValue* value, const methodHandle& method, JavaCallArguments* args, JavaThread* thread) {
-  f(value, method, args, thread);
+  __try {
+    log_info(os)("Entering os_exception_wrapper");
+    f(value, method, args, thread);
+  } __except(topLevelExceptionFilter((_EXCEPTION_POINTERS*)_exception_info())) {
+      // Nothing to do.
+    log_info(os)("os_exception_wrapper __except body");
+  }
+  log_info(os)("Leaving os_exception_wrapper");
 }
 
 PRAGMA_DISABLE_MSVC_WARNING(4172)

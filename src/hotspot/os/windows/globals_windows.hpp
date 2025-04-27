@@ -38,6 +38,9 @@
 product(bool, UseAllWindowsProcessorGroups, false,                        \
         "Use all processor groups on supported Windows versions")         \
                                                                           \
+product(bool, AlwaysRunTopLevelExceptionFilter, false,                    \
+        "Always execute the top level exception filter")                  \
+                                                                          \
 product(bool, EnableAllLargePageSizesForWindows, false,                   \
         "Enable support for multiple large page sizes on "                \
         "Windows Server")                                                 \

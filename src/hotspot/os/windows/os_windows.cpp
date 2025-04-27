@@ -2581,6 +2581,7 @@ LONG Handle_IDiv_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
 
 static inline void report_error(Thread* t, DWORD exception_code,
                                 address addr, void* siginfo, void* context) {
+  log_info(os)("report_error calling VMError::report_and_die");
   VMError::report_and_die(t, exception_code, addr, siginfo, context);
 
   // If UseOSErrorReporting, this will return here and save the error file
@@ -2590,10 +2591,12 @@ static inline void report_error(Thread* t, DWORD exception_code,
 //-----------------------------------------------------------------------------
 JNIEXPORT
 LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
+  log_info(os)("Entering topLevelExceptionFilter");
   PreserveLastError ple;
   if (InterceptOSException) return EXCEPTION_CONTINUE_SEARCH;
   PEXCEPTION_RECORD exception_record = exceptionInfo->ExceptionRecord;
   DWORD exception_code = exception_record->ExceptionCode;
+  log_info(os)("exception_code in topLevelExceptionFilter: %d", exception_code);
 #if defined(_M_ARM64)
   address pc = (address) exceptionInfo->ContextRecord->Pc;
 #elif defined(_M_AMD64)
@@ -2629,6 +2632,7 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 #endif
 
   if (t != nullptr && t->is_Java_thread()) {
+    log_info(os)("topLevelExceptionFilter handling Java thread");
     JavaThread* thread = JavaThread::cast(t);
     bool in_java = thread->thread_state() == _thread_in_Java;
     bool in_native = thread->thread_state() == _thread_in_native;
@@ -2665,7 +2669,9 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
         return EXCEPTION_CONTINUE_SEARCH;
       }
     } else if (exception_code == EXCEPTION_ACCESS_VIOLATION) {
+      log_info(os)("topLevelExceptionFilter handling EXCEPTION_ACCESS_VIOLATION");
       if (in_java) {
+        log_info(os)("topLevelExceptionFilter handling EXCEPTION_ACCESS_VIOLATION in_java");
         // Either stack overflow or null pointer exception.
         address addr = (address) exception_record->ExceptionInformation[1];
         address stack_end = thread->stack_end();
@@ -2709,14 +2715,17 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
       // in and the heap gets shrunk before the field access.
       address slowcase_pc = JNI_FastGetField::find_slowcase_pc(pc);
       if (slowcase_pc != (address)-1) {
+        log_info(os)("topLevelExceptionFilter doing Handle_Exception");
         return Handle_Exception(exceptionInfo, slowcase_pc);
       }
 
       // Stack overflow or null pointer exception in native code.
 #if !defined(USE_VECTORED_EXCEPTION_HANDLING)
-      report_error(t, exception_code, pc, exception_record,
+        log_info(os)("topLevelExceptionFilter calling report_error for !defined(USE_VECTORED_EXCEPTION_HANDLING) case");
+        report_error(t, exception_code, pc, exception_record,
                    exceptionInfo->ContextRecord);
 #endif
+      log_info(os)("topLevelExceptionFilter returning EXCEPTION_CONTINUE_SEARCH on line %d", __LINE__);
       return EXCEPTION_CONTINUE_SEARCH;
     } // /EXCEPTION_ACCESS_VIOLATION
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2793,15 +2802,19 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 
 #if !defined(USE_VECTORED_EXCEPTION_HANDLING)
   if (exception_code != EXCEPTION_BREAKPOINT) {
+    log_info(os)("topLevelExceptionFilter reporting error near end of method");
     report_error(t, exception_code, pc, exception_record,
                  exceptionInfo->ContextRecord);
   }
 #endif
+  log_info(os)("Leaving topLevelExceptionFilter");
+
   return EXCEPTION_CONTINUE_SEARCH;
 }
 
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
+  log_info(os)("Entering topLevelVectoredExceptionFilter");
   PEXCEPTION_RECORD exceptionRecord = exceptionInfo->ExceptionRecord;
 #if defined(_M_ARM64)
   address pc = (address) exceptionInfo->ContextRecord->Pc;
@@ -2811,8 +2824,13 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
   #error unknown architecture
 #endif
 
+  DWORD exception_code = exceptionRecord->ExceptionCode;
+  log_info(os)("exception_code in topLevelVectoredExceptionFilter: %d at PC: " PTR_FORMAT, exception_code,
+  p2i(pc));
+
   // Fast path for code part of the code cache
   if (CodeCache::low_bound() <= pc && pc < CodeCache::high_bound()) {
+    log_info(os)("Calling topLevelExceptionFilter from location 1");
     return topLevelExceptionFilter(exceptionInfo);
   }
 
@@ -2820,15 +2838,23 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
   // to our normal exception handler.
   CodeBlob* cb = CodeCache::find_blob(pc);
   if (cb != nullptr) {
+    log_info(os)("Calling topLevelExceptionFilter from location 2");
     return topLevelExceptionFilter(exceptionInfo);
   }
 
+  if (AlwaysRunTopLevelExceptionFilter) {
+    log_info(os)("Calling topLevelExceptionFilter from location 3 due to -XX:+AlwaysRunTopLevelExceptionFilter");
+    return topLevelExceptionFilter(exceptionInfo);
+  }
+
+  log_info(os)("Leaving topLevelVectoredExceptionFilter");
   return EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
 
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
+  log_info(os)("Entering topLevelUnhandledExceptionFilter");
   if (!InterceptOSException) {
     DWORD exceptionCode = exceptionInfo->ExceptionRecord->ExceptionCode;
 #if defined(_M_ARM64)
@@ -2841,11 +2867,13 @@ LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* excepti
     Thread* thread = Thread::current_or_null_safe();
 
     if (exceptionCode != EXCEPTION_BREAKPOINT) {
+      log_info(os)("topLevelUnhandledExceptionFilter calling report_error");
       report_error(thread, exceptionCode, pc, exceptionInfo->ExceptionRecord,
                   exceptionInfo->ContextRecord);
     }
   }
 
+  log_info(os)("Leaving topLevelUnhandledExceptionFilter");
   return previousUnhandledExceptionFilter ? previousUnhandledExceptionFilter(exceptionInfo) : EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
@@ -4447,6 +4475,7 @@ jint os::init_2(void) {
   bool schedules_all_processor_groups = win32::is_windows_11_or_greater() || win32::is_windows_server_2022_or_greater();
   log_debug(os)(schedules_all_processor_groups ? auto_schedules_message : no_auto_schedules_message);
   log_debug(os)("%d logical processors found.", processor_count());
+  log_debug(os)("Debugging missing crashdumps: 2025-04-27 1416");
 
   // This could be set any time but all platforms
   // have to set it the same so we have to mirror Solaris.
