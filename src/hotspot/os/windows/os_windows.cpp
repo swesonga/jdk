@@ -139,7 +139,24 @@ static FILETIME process_kernel_time;
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 PVOID  topLevelVectoredExceptionHandler = nullptr;
 LPTOP_LEVEL_EXCEPTION_FILTER previousUnhandledExceptionFilter = nullptr;
+LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo);
+LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo);
 #endif
+
+static volatile int global_flag = 0;
+
+static void crash(int flag = 0) {
+  global_flag = flag;
+  log_info(os)("crashing with global_flag: %d on thread %d", global_flag, os::current_thread_id());
+  Sleep(SleepMillisBeforeCrash);
+
+  if (WaitForUserInputBeforeCrash) {
+    char buffer[20];
+    DWORD chars_read;
+    ReadConsole(GetStdHandle(STD_INPUT_HANDLE), buffer, 1, &chars_read, NULL);
+  }
+  *((volatile int*)nullptr) = 0x1234;
+}
 
 // save DLL module handle, used by GetModuleFileName
 
@@ -167,6 +184,7 @@ static void windows_atexit() {
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID reserved) {
+  log_info(os)("DllMain with global_flag: %d on thread %d with reason %d", global_flag, os::current_thread_id(), reason);
   switch (reason) {
   case DLL_PROCESS_ATTACH:
     windows_preinit(hinst);
@@ -1688,24 +1706,59 @@ static int _print_module(const char* fname, address base_address,
 // in case of error it checks if .dll/.so was built for the
 // same architecture as Hotspot is running on
 void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
-  log_info(os)("attempting shared library load of %s", name);
+  log_info(os)("attempting shared library load of %s on thread %d", name, os::current_thread_id());
   void* result;
   JFR_ONLY(NativeLibraryLoadEvent load_event(name, &result);)
-  result = LoadLibrary(name);
+
+  bool is_dll_to_inspect = LibraryToCrashOn == nullptr || (strcmp(LibraryToCrashOn, name) == 0);
+
+  if (is_dll_to_inspect) {
+    global_flag = 0x40000001;
+    if (CrashAtLocation98) {
+      crash(0x40000001);
+    }
+  }
+
+  if (is_dll_to_inspect && UseLoadLibraryEx) {
+    result = LoadLibraryEx(name, nullptr, LoadLibraryExFlags);
+  } else {
+    result = LoadLibrary(name);
+  }
+
+  if (CrashAtLocation99) {
+    if (is_dll_to_inspect) {
+      crash(0x40000002);
+    }
+  }
+
+#if defined(USE_VECTORED_EXCEPTION_HANDLING)
+  if (SetHandlersAfterDllLoad && LibraryToCrashOn != nullptr &&
+      strcmp(LibraryToCrashOn, name) == 0) {
+    topLevelVectoredExceptionHandler = AddVectoredExceptionHandler(1, topLevelVectoredExceptionFilter);
+    previousUnhandledExceptionFilter = SetUnhandledExceptionFilter(topLevelUnhandledExceptionFilter);
+    log_info(os)("AddVectoredExceptionHandler %s. Current top-level exception handler found: %d",
+      topLevelVectoredExceptionHandler == nullptr ? "failed" : "succeeded",
+      previousUnhandledExceptionFilter == nullptr ? "no" : "yes"
+    );
+  }
+#endif
+
+  global_flag = 0;
   if (result != nullptr) {
     Events::log_dll_message(nullptr, "Loaded shared library %s", name);
     // Recalculate pdb search path if a DLL was loaded successfully.
     SymbolEngine::recalc_search_path();
-    log_info(os)("shared library load of %s was successful", name);
+    log_info(os)("shared library load of %s on thread %d was successful", name, os::current_thread_id());
     return result;
   }
+
   DWORD errcode = GetLastError();
   // Read system error message into ebuf
   // It may or may not be overwritten below (in the for loop and just above)
   lasterror(ebuf, (size_t) ebuflen);
   ebuf[ebuflen - 1] = '\0';
   Events::log_dll_message(nullptr, "Loading shared library %s failed, error code %lu", name, errcode);
-  log_info(os)("shared library load of %s failed, error code %lu", name, errcode);
+  log_info(os)("shared library load of %s on thread %d failed, error code %lu", name, os::current_thread_id(), errcode);
 
   if (errcode == ERROR_MOD_NOT_FOUND) {
     strncpy(ebuf, "Can't find dependent libraries", ebuflen - 1);
@@ -1746,6 +1799,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
     );
 
   ::close(fd);
+
   if (failed_to_get_lib_arch) {
     // file i/o error - report os::lasterror(...) msg
     JFR_ONLY(load_event.set_error_msg("failed to get lib architecture");)
@@ -2581,6 +2635,7 @@ LONG Handle_IDiv_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
 
 static inline void report_error(Thread* t, DWORD exception_code,
                                 address addr, void* siginfo, void* context) {
+  log_info(os)("report_error calling VMError::report_and_die");
   VMError::report_and_die(t, exception_code, addr, siginfo, context);
 
   // If UseOSErrorReporting, this will return here and save the error file
@@ -2590,10 +2645,16 @@ static inline void report_error(Thread* t, DWORD exception_code,
 //-----------------------------------------------------------------------------
 JNIEXPORT
 LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
+  if (LogInTopLevelExceptionFilter) {
+    log_info(os)("Entering topLevelExceptionFilter");
+  }
   PreserveLastError ple;
   if (InterceptOSException) return EXCEPTION_CONTINUE_SEARCH;
   PEXCEPTION_RECORD exception_record = exceptionInfo->ExceptionRecord;
   DWORD exception_code = exception_record->ExceptionCode;
+  if (LogInTopLevelExceptionFilter) {
+    log_info(os)("exception_code in topLevelExceptionFilter: %d", exception_code);
+  }
 #if defined(_M_ARM64)
   address pc = (address) exceptionInfo->ContextRecord->Pc;
 #elif defined(_M_AMD64)
@@ -2629,6 +2690,9 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 #endif
 
   if (t != nullptr && t->is_Java_thread()) {
+    if (LogInTopLevelExceptionFilter) {
+      log_info(os)("topLevelExceptionFilter handling Java thread");
+    }
     JavaThread* thread = JavaThread::cast(t);
     bool in_java = thread->thread_state() == _thread_in_Java;
     bool in_native = thread->thread_state() == _thread_in_native;
@@ -2658,14 +2722,20 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
         // Fatal red zone violation.
         overflow_state->disable_stack_red_zone();
         tty->print_raw_cr("An unrecoverable stack overflow has occurred.");
-#if !defined(USE_VECTORED_EXCEPTION_HANDLING)
+//#if !defined(USE_VECTORED_EXCEPTION_HANDLING)
         report_error(t, exception_code, pc, exception_record,
                       exceptionInfo->ContextRecord);
-#endif
+//#endif
         return EXCEPTION_CONTINUE_SEARCH;
       }
     } else if (exception_code == EXCEPTION_ACCESS_VIOLATION) {
+      if (LogInTopLevelExceptionFilter) {
+        log_info(os)("topLevelExceptionFilter handling EXCEPTION_ACCESS_VIOLATION");
+      }
       if (in_java) {
+        if (LogInTopLevelExceptionFilter) {
+          log_info(os)("topLevelExceptionFilter handling EXCEPTION_ACCESS_VIOLATION in_java");
+        }
         // Either stack overflow or null pointer exception.
         address addr = (address) exception_record->ExceptionInformation[1];
         address stack_end = thread->stack_end();
@@ -2709,14 +2779,23 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
       // in and the heap gets shrunk before the field access.
       address slowcase_pc = JNI_FastGetField::find_slowcase_pc(pc);
       if (slowcase_pc != (address)-1) {
+        if (LogInTopLevelExceptionFilter) {
+          log_info(os)("topLevelExceptionFilter doing Handle_Exception");
+        }
         return Handle_Exception(exceptionInfo, slowcase_pc);
       }
 
       // Stack overflow or null pointer exception in native code.
-#if !defined(USE_VECTORED_EXCEPTION_HANDLING)
-      report_error(t, exception_code, pc, exception_record,
+//#if !defined(USE_VECTORED_EXCEPTION_HANDLING)
+      if (LogInTopLevelExceptionFilter) {
+        log_info(os)("topLevelExceptionFilter calling report_error for !defined(USE_VECTORED_EXCEPTION_HANDLING) case");
+      }
+        report_error(t, exception_code, pc, exception_record,
                    exceptionInfo->ContextRecord);
-#endif
+//#endif
+      if (LogInTopLevelExceptionFilter) {
+        log_info(os)("topLevelExceptionFilter returning EXCEPTION_CONTINUE_SEARCH on line %d", __LINE__);
+      }
       return EXCEPTION_CONTINUE_SEARCH;
     } // /EXCEPTION_ACCESS_VIOLATION
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2793,15 +2872,28 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 
 #if !defined(USE_VECTORED_EXCEPTION_HANDLING)
   if (exception_code != EXCEPTION_BREAKPOINT) {
+    if (LogInTopLevelExceptionFilter) {
+      log_info(os)("topLevelExceptionFilter reporting error near end of method");
+    }
     report_error(t, exception_code, pc, exception_record,
                  exceptionInfo->ContextRecord);
   }
 #endif
+  if (LogInTopLevelExceptionFilter) {
+    log_info(os)("Leaving topLevelExceptionFilter");
+  }
+
   return EXCEPTION_CONTINUE_SEARCH;
 }
 
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
+  if (IncrementGlobalFlag) {
+    global_flag++;
+  }
+  if (LogInVectoredExceptionHandler) {
+    log_info(os)("Entering topLevelVectoredExceptionFilter with global_flag: %d on thread %d", global_flag, os::current_thread_id());
+  }
   PEXCEPTION_RECORD exceptionRecord = exceptionInfo->ExceptionRecord;
 #if defined(_M_ARM64)
   address pc = (address) exceptionInfo->ContextRecord->Pc;
@@ -2811,8 +2903,16 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
   #error unknown architecture
 #endif
 
+  DWORD exception_code = exceptionRecord->ExceptionCode;
+  if (LogInVectoredExceptionHandler) {
+    log_info(os)("exception_code in topLevelVectoredExceptionFilter: %d at PC: " PTR_FORMAT, exception_code, p2i(pc));
+  }
+
   // Fast path for code part of the code cache
   if (CodeCache::low_bound() <= pc && pc < CodeCache::high_bound()) {
+    if (LogInVectoredExceptionHandler) {
+      log_info(os)("Calling topLevelExceptionFilter from location 1");
+    }
     return topLevelExceptionFilter(exceptionInfo);
   }
 
@@ -2820,15 +2920,29 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
   // to our normal exception handler.
   CodeBlob* cb = CodeCache::find_blob(pc);
   if (cb != nullptr) {
+    if (LogInVectoredExceptionHandler) {
+      log_info(os)("Calling topLevelExceptionFilter from location 2");
+    }
     return topLevelExceptionFilter(exceptionInfo);
   }
 
+  if (AlwaysRunTopLevelExceptionFilter) {
+    if (LogInVectoredExceptionHandler) {
+      log_info(os)("Calling topLevelExceptionFilter from location 3 due to -XX:+AlwaysRunTopLevelExceptionFilter");
+    }
+    return topLevelExceptionFilter(exceptionInfo);
+  }
+
+  if (LogInVectoredExceptionHandler) {
+    log_info(os)("Leaving topLevelVectoredExceptionFilter - thread %d", os::current_thread_id());
+  }
   return EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
 
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
+  log_info(os)("Entering topLevelUnhandledExceptionFilter with global_flag: %d on thread %d", global_flag, os::current_thread_id());
   if (!InterceptOSException) {
     DWORD exceptionCode = exceptionInfo->ExceptionRecord->ExceptionCode;
 #if defined(_M_ARM64)
@@ -2841,11 +2955,13 @@ LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* excepti
     Thread* thread = Thread::current_or_null_safe();
 
     if (exceptionCode != EXCEPTION_BREAKPOINT) {
+      log_info(os)("topLevelUnhandledExceptionFilter calling report_error");
       report_error(thread, exceptionCode, pc, exceptionInfo->ExceptionRecord,
                   exceptionInfo->ContextRecord);
     }
   }
 
+  log_info(os)("Leaving topLevelUnhandledExceptionFilter - thread %d", os::current_thread_id());
   return previousUnhandledExceptionFilter ? previousUnhandledExceptionFilter(exceptionInfo) : EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
@@ -4448,6 +4564,12 @@ jint os::init_2(void) {
   log_debug(os)(schedules_all_processor_groups ? auto_schedules_message : no_auto_schedules_message);
   log_debug(os)("%d logical processors found.", processor_count());
 
+#pragma warning(push)
+#pragma warning(disable : 5048)
+  // warning C5048: Use of macro '__DATE__' may result in non-deterministic output
+  log_debug(os)("Debugging missing crashdumps: " __DATE__ " " __TIME__);
+#pragma warning(pop)
+
   // This could be set any time but all platforms
   // have to set it the same so we have to mirror Solaris.
   DEBUG_ONLY(os::set_mutex_init_done();)
@@ -4524,7 +4646,6 @@ jint os::init_2(void) {
 #endif
   }
   log_info(os, thread)("The SetThreadDescription API is%s available.", _SetThreadDescription == nullptr ? " not" : "");
-
 
   return JNI_OK;
 }

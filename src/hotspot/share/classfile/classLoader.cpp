@@ -1357,6 +1357,7 @@ void ClassLoader::initialize(TRAPS) {
 
   // lookup java library entry points
   load_java_library();
+
   // jimage library entry points are loaded below, in lookup_vm_options
   setup_bootstrap_search_path(THREAD);
 }

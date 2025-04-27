@@ -29,16 +29,21 @@
 #include "runtime/os.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/vmError.hpp"
+#include "logging/log.hpp"
 
 LONG WINAPI crash_handler(struct _EXCEPTION_POINTERS* exceptionInfo) {
+  log_info(os)("Entering crash_handler");
   DWORD exception_code = exceptionInfo->ExceptionRecord->ExceptionCode;
   VMError::report_and_die(nullptr, exception_code, nullptr, exceptionInfo->ExceptionRecord,
                           exceptionInfo->ContextRecord);
+  log_info(os)("Leaving crash_handler");
   return EXCEPTION_CONTINUE_SEARCH;
 }
 
 void VMError::install_secondary_signal_handler() {
+  log_info(os)("Entering VMError::install_secondary_signal_handler");
   SetUnhandledExceptionFilter(crash_handler);
+  log_info(os)("Leaving VMError::install_secondary_signal_handler");
 }
 
 // Write a hint to the stream in case siginfo relates to a segv/bus error
@@ -68,9 +73,11 @@ void VMError::reporting_started() {}
 void VMError::interrupt_reporting_thread() {}
 
 void VMError::raise_fail_fast(const void* exrecord, const void* context) {
+  log_info(os)("Entering VMError::raise_fail_fast");
   DWORD flags = (exrecord == nullptr) ? FAIL_FAST_GENERATE_EXCEPTION_ADDRESS : 0;
   PEXCEPTION_RECORD exception_record = static_cast<PEXCEPTION_RECORD>(const_cast<void*>(exrecord));
   PCONTEXT ctx = static_cast<PCONTEXT>(const_cast<void*>(context));
+  log_info(os)("Raising fail fast exception");
   RaiseFailFastException(exception_record, ctx, flags);
   ::abort();
 }
