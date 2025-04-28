@@ -81,7 +81,7 @@
 #include <signal.h>
 #endif // PRODUCT
 
-#include <Windows.h>
+// #include <Windows.h>
 
 bool              VMError::coredump_status;
 char              VMError::coredump_message[O_BUFLEN];
@@ -608,7 +608,7 @@ void VMError::report(outputStream* st, bool _verbose) {
   log_info(os)("Entering VMError::report");
   static int continuation = 0;
   const char* stop_reattempt_reason = nullptr;
-  DebugBreak();
+  // DebugBreak();
 # define BEGIN                                             \
   if (_current_step == 0) {                                \
     _step_did_succeed = false;                             \
