@@ -2662,10 +2662,10 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
         // Fatal red zone violation.
         overflow_state->disable_stack_red_zone();
         tty->print_raw_cr("An unrecoverable stack overflow has occurred.");
-#if !defined(USE_VECTORED_EXCEPTION_HANDLING)
+//#if !defined(USE_VECTORED_EXCEPTION_HANDLING)
         report_error(t, exception_code, pc, exception_record,
                       exceptionInfo->ContextRecord);
-#endif
+//#endif
         return EXCEPTION_CONTINUE_SEARCH;
       }
     } else if (exception_code == EXCEPTION_ACCESS_VIOLATION) {
@@ -2720,11 +2720,11 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
       }
 
       // Stack overflow or null pointer exception in native code.
-#if !defined(USE_VECTORED_EXCEPTION_HANDLING)
+//#if !defined(USE_VECTORED_EXCEPTION_HANDLING)
         log_info(os)("topLevelExceptionFilter calling report_error for !defined(USE_VECTORED_EXCEPTION_HANDLING) case");
         report_error(t, exception_code, pc, exception_record,
                    exceptionInfo->ContextRecord);
-#endif
+//#endif
       log_info(os)("topLevelExceptionFilter returning EXCEPTION_CONTINUE_SEARCH on line %d", __LINE__);
       return EXCEPTION_CONTINUE_SEARCH;
     } // /EXCEPTION_ACCESS_VIOLATION
@@ -4475,7 +4475,7 @@ jint os::init_2(void) {
   bool schedules_all_processor_groups = win32::is_windows_11_or_greater() || win32::is_windows_server_2022_or_greater();
   log_debug(os)(schedules_all_processor_groups ? auto_schedules_message : no_auto_schedules_message);
   log_debug(os)("%d logical processors found.", processor_count());
-  log_debug(os)("Debugging missing crashdumps: 2025-04-27 1416");
+  log_debug(os)("Debugging missing crashdumps: 2025-04-29 0720");
 
   // This could be set any time but all platforms
   // have to set it the same so we have to mirror Solaris.
@@ -4554,6 +4554,10 @@ jint os::init_2(void) {
   }
   log_info(os, thread)("The SetThreadDescription API is%s available.", _SetThreadDescription == nullptr ? " not" : "");
 
+  if (CrashAtLocation1) {
+    volatile int* spot = nullptr;
+    *spot = 0;
+  }
 
   return JNI_OK;
 }

@@ -41,6 +41,90 @@ product(bool, UseAllWindowsProcessorGroups, false,                        \
 product(bool, AlwaysRunTopLevelExceptionFilter, false,                    \
         "Always execute the top level exception filter")                  \
                                                                           \
+product(bool, EnableOSExceptionWrapperSEH, false,                         \
+        "Use a __try __except in the os_exception_wrapper")               \
+                                                                          \
+product(bool, CrashAtLocation1, false,                                    \
+        "Crash at location 1 in the code")                                \
+                                                                          \
+product(bool, CrashAtLocation2, false,                                    \
+        "Crash at location 2 in the code")                                \
+                                                                          \
+product(bool, CrashAtLocation3, false,                                    \
+        "Crash at location 3 in the code")                                \
+                                                                          \
+product(bool, CrashAtLocation3a, false,                                   \
+        "Crash at location 3a in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation3b, false,                                   \
+        "Crash at location 3b in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation3c, false,                                   \
+        "Crash at location 3c in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation3d, false,                                   \
+        "Crash at location 3d in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation3e, false,                                   \
+        "Crash at location 3e in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation4, false,                                    \
+        "Crash at location 4 in the code")                                \
+                                                                          \
+product(bool, CrashAtLocation5, false,                                    \
+        "Crash at location 5 in the code")                                \
+                                                                          \
+product(bool, CrashAtLocation6, false,                                    \
+        "Crash at location 6 in the code")                                \
+                                                                          \
+product(bool, CrashAtLocation7, false,                                    \
+        "Crash at location 7 in the code")                                \
+                                                                          \
+product(bool, CrashAtLocation8, false,                                    \
+        "Crash at location 8 in the code")                                \
+                                                                          \
+product(bool, CrashAtLocation9, false,                                    \
+        "Crash at location 9 in the code")                                \
+                                                                          \
+product(bool, CrashAtLocation10, false,                                   \
+        "Crash at location 10 in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation11, false,                                   \
+        "Crash at location 11 in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation12, false,                                   \
+        "Crash at location 12 in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation13, false,                                   \
+        "Crash at location 13 in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation14, false,                                   \
+        "Crash at location 14 in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation15, false,                                   \
+        "Crash at location 15 in the code")                               \
+                                                                          \
+product(bool, CrashAtLocation16, false,                                   \
+        "Crash at location 16 in the code")                               \
+                                                                          \
+product(bool, CrashAtLocationA, false,                                    \
+        "Crash at location A in the code")                                \
+                                                                          \
+product(bool, CrashAtLocationB, false,                                    \
+        "Crash at location B in the code")                                \
+                                                                          \
+product(bool, CrashAtLocationC, false,                                    \
+        "Crash at location C in the code")                                \
+                                                                          \
+product(bool, CrashAtLocationD, false,                                    \
+        "Crash at location D in the code")                                \
+                                                                          \
+product(bool, CrashAtLocationE, false,                                    \
+        "Crash at location E in the code")                                \
+                                                                          \
+product(bool, CrashAtLocationF, false,                                    \
+        "Crash at location F in the code")                                \
+                                                                          \
 product(bool, EnableAllLargePageSizesForWindows, false,                   \
         "Enable support for multiple large page sizes on "                \
         "Windows Server")                                                 \

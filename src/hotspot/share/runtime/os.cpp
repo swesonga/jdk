@@ -524,7 +524,17 @@ void* os::native_java_library() {
     // Load java dll
     if (dll_locate_lib(buffer, sizeof(buffer), Arguments::get_dll_dir(),
                        "java")) {
+
+  if (CrashAtLocationC) {
+    volatile int* spot = nullptr;
+    *spot = 0;
+  }
       _native_java_library = dll_load(buffer, ebuf, sizeof(ebuf));
+
+  if (CrashAtLocationD) {
+    volatile int* spot = nullptr;
+    *spot = 0;
+  }
     }
     if (_native_java_library == nullptr) {
       vm_exit_during_initialization("Unable to load native library", ebuf);

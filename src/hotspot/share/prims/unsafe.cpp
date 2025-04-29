@@ -60,6 +60,7 @@
 #include "utilities/copy.hpp"
 #include "utilities/dtrace.hpp"
 #include "utilities/macros.hpp"
+#include <Windows.h>
 
 /**
  * Implementation of the jdk.internal.misc.Unsafe class
@@ -247,7 +248,14 @@ public:
   ATTRIBUTE_NO_UBSAN
   void put(T x) {
     GuardUnsafeAccess guard(_thread);
-    *addr() = normalize_for_write(x);
+    T value_to_put = normalize_for_write(x);
+    //*addr() = value_to_put;
+    volatile T* spot = addr();
+    if (spot == nullptr) {
+      Sleep(5000);
+      TerminateProcess(GetCurrentProcess(), 1);
+    }
+    *spot = value_to_put;
   }
 
 
@@ -259,7 +267,12 @@ public:
 
   void put_volatile(T x) {
     GuardUnsafeAccess guard(_thread);
-    RawAccess<MO_SEQ_CST>::store(addr(), normalize_for_write(x));
+    volatile T* spot = addr();
+    if (spot == nullptr) {
+      Sleep(5000);
+      TerminateProcess(GetCurrentProcess(), 1);
+    }
+    RawAccess<MO_SEQ_CST>::store(spot, normalize_for_write(x));
   }
 };
 
