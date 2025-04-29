@@ -1691,13 +1691,25 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   log_info(os)("attempting shared library load of %s", name);
   void* result;
   JFR_ONLY(NativeLibraryLoadEvent load_event(name, &result);)
+
+  if (CrashAtLocation7) {
+    *((volatile int*)nullptr) = 0x1234;
+  }
   result = LoadLibrary(name);
+
+  if (CrashAtLocation8) {
+    *((volatile int*)nullptr) = 0x1234;
+  }
   if (result != nullptr) {
     Events::log_dll_message(nullptr, "Loaded shared library %s", name);
     // Recalculate pdb search path if a DLL was loaded successfully.
     SymbolEngine::recalc_search_path();
     log_info(os)("shared library load of %s was successful", name);
     return result;
+  }
+
+  if (CrashAtLocation9) {
+    *((volatile int*)nullptr) = 0x1234;
   }
   DWORD errcode = GetLastError();
   // Read system error message into ebuf
@@ -1746,6 +1758,10 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
     );
 
   ::close(fd);
+
+  if (CrashAtLocation10) {
+    *((volatile int*)nullptr) = 0x1234;
+  }
   if (failed_to_get_lib_arch) {
     // file i/o error - report os::lasterror(...) msg
     JFR_ONLY(load_event.set_error_msg("failed to get lib architecture");)
