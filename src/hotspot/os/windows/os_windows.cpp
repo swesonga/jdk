@@ -1693,7 +1693,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   JFR_ONLY(NativeLibraryLoadEvent load_event(name, &result);)
 
   if (CrashAtLocation7) {
-    if (LibraryToCrashOn == nullptr || 
+    if (LibraryToCrashOn == nullptr ||
         strcmp(LibraryToCrashOn, name) == 0) {
       *((volatile int*)nullptr) = 0x1234;
     }
@@ -1701,7 +1701,10 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   result = LoadLibrary(name);
 
   if (CrashAtLocation8) {
-    *((volatile int*)nullptr) = 0x1234;
+    if (LibraryToCrashOn == nullptr ||
+        strcmp(LibraryToCrashOn, name) == 0) {
+      *((volatile int*)nullptr) = 0x1234;
+    }
   }
   if (result != nullptr) {
     Events::log_dll_message(nullptr, "Loaded shared library %s", name);
@@ -1712,7 +1715,10 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   }
 
   if (CrashAtLocation9) {
-    *((volatile int*)nullptr) = 0x1234;
+    if (LibraryToCrashOn == nullptr ||
+        strcmp(LibraryToCrashOn, name) == 0) {
+      *((volatile int*)nullptr) = 0x1234;
+    }
   }
   DWORD errcode = GetLastError();
   // Read system error message into ebuf
@@ -1763,7 +1769,10 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   ::close(fd);
 
   if (CrashAtLocation10) {
-    *((volatile int*)nullptr) = 0x1234;
+    if (LibraryToCrashOn == nullptr ||
+        strcmp(LibraryToCrashOn, name) == 0) {
+      *((volatile int*)nullptr) = 0x1234;
+    }
   }
   if (failed_to_get_lib_arch) {
     // file i/o error - report os::lasterror(...) msg
