@@ -125,6 +125,9 @@ product(bool, CrashAtLocationE, false,                                    \
 product(bool, CrashAtLocationF, false,                                    \
         "Crash at location F in the code")                                \
                                                                           \
+product(ccstr, LibraryToCrashOn, nullptr,                                 \
+        "File being loaded before bug")                                   \
+                                                                          \
 product(bool, EnableAllLargePageSizesForWindows, false,                   \
         "Enable support for multiple large page sizes on "                \
         "Windows Server")                                                 \

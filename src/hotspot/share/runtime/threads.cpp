@@ -642,6 +642,10 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   }
 
   status = init_globals2();
+
+  if (CrashAtLocation16) {
+    *((volatile int*)nullptr) = 0x1234;
+  }
   if (status != JNI_OK) {
     Threads::remove(main_thread, false);
     // It is possible that we managed to fully initialize Universe but have then
@@ -657,10 +661,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   ObjectMonitor::Initialize2();
 
   JFR_ONLY(Jfr::on_create_vm_1();)
-
-  if (CrashAtLocation5) {
-    *((volatile int*)nullptr) = 0x1234;
-  }
 
   // Should be done after the heap is fully created
   main_thread->cache_global_variables();
@@ -692,7 +692,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   }
 
   if (CrashAtLocation6) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
   assert(Universe::is_fully_initialized(), "not initialized");
@@ -726,7 +726,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   }
 
   if (CrashAtLocation7) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
   initialize_java_lang_classes(main_thread, CHECK_JNI_ERR);
@@ -745,7 +745,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   MutexLockerImpl::post_initialize();
 
   if (CrashAtLocation8) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
   HOTSPOT_VM_INIT_END();
@@ -766,7 +766,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   os::initialize_jdk_signal_support(CHECK_JNI_ERR);
 
   if (CrashAtLocation9) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
   // Start Attach Listener if +StartAttachListener or it can't be started lazily
@@ -793,7 +793,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   MonitorDeflationThread::initialize();
 
   if (CrashAtLocation10) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
   // initialize compiler(s)
@@ -829,7 +829,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   }
 
   if (CrashAtLocation11) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
   // Start string deduplication thread if requested.
@@ -855,7 +855,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 #endif
 
   if (CrashAtLocation12) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
   JFR_ONLY(Jfr::on_create_vm_2();)
@@ -874,7 +874,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   SystemDictionary::compute_java_loaders(CHECK_JNI_ERR);
 
   if (CrashAtLocation13) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
   if (Continuations::enabled()) {
@@ -899,7 +899,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   JvmtiExport::post_vm_initialized();
 
   if (CrashAtLocation14) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
 #if INCLUDE_JVMCI
@@ -932,7 +932,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   }
 
   if (CrashAtLocation15) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
   // Let WatcherThread run all registered periodic tasks now.
@@ -961,7 +961,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   }
 
   if (CrashAtLocation16) {
-    *((volatile int*)nullptr) = 0x1234;
+    // *((volatile int*)nullptr) = 0x1234;
   }
 
   return JNI_OK;

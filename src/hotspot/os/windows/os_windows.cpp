@@ -1693,7 +1693,10 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   JFR_ONLY(NativeLibraryLoadEvent load_event(name, &result);)
 
   if (CrashAtLocation7) {
-    *((volatile int*)nullptr) = 0x1234;
+    if (LibraryToCrashOn == nullptr || 
+        strcmp(LibraryToCrashOn, name) == 0) {
+      *((volatile int*)nullptr) = 0x1234;
+    }
   }
   result = LoadLibrary(name);
 
