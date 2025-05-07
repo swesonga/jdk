@@ -147,6 +147,7 @@ static int global_flag = 0;
 
 static void crash(int flag = 0) {
   global_flag = flag;
+  log_info(os)("crashing with global_flag: %d", global_flag);
   Sleep(3000);
   *((volatile int*)nullptr) = 0x1234;
 }
@@ -1737,6 +1738,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   }
 #endif
 
+  global_flag = 0;
   if (result != nullptr) {
     Events::log_dll_message(nullptr, "Loaded shared library %s", name);
     // Recalculate pdb search path if a DLL was loaded successfully.
