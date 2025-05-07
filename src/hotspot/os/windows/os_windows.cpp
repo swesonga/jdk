@@ -1707,7 +1707,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
     strcmp(LibraryToCrashOn, name) == 0) {
     global_flag = 7;
     if (CrashAtLocation7) {
-      crash();
+      crash(7);
     }
   }
   result = LoadLibrary(name);
