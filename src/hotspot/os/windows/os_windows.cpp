@@ -143,7 +143,10 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
 LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo);
 #endif
 
-static void crash() {
+static int global_flag = 0;
+
+static void crash(int flag = 0) {
+  global_flag = flag;
   Sleep(3000);
   *((volatile int*)nullptr) = 0x1234;
 }
@@ -1699,9 +1702,10 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   void* result;
   JFR_ONLY(NativeLibraryLoadEvent load_event(name, &result);)
 
-  if (CrashAtLocation7) {
-    if (LibraryToCrashOn == nullptr ||
-        strcmp(LibraryToCrashOn, name) == 0) {
+  if (LibraryToCrashOn == nullptr ||
+    strcmp(LibraryToCrashOn, name) == 0) {
+    global_flag = 7;
+    if (CrashAtLocation7) {
       crash();
     }
   }
@@ -1710,7 +1714,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   if (CrashAtLocation8) {
     if (LibraryToCrashOn == nullptr ||
         strcmp(LibraryToCrashOn, name) == 0) {
-      crash();
+      crash(8);
     }
   }
 
@@ -1728,7 +1732,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   if (CrashAtLocation8b) {
     if (LibraryToCrashOn == nullptr ||
         strcmp(LibraryToCrashOn, name) == 0) {
-      crash();
+      crash(0x8b);
     }
   }
 #endif
@@ -2869,7 +2873,7 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
-  log_info(os)("Entering topLevelVectoredExceptionFilter");
+  log_info(os)("Entering topLevelVectoredExceptionFilter with global_flag: %d", global_flag);
   PEXCEPTION_RECORD exceptionRecord = exceptionInfo->ExceptionRecord;
 #if defined(_M_ARM64)
   address pc = (address) exceptionInfo->ContextRecord->Pc;
