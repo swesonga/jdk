@@ -139,7 +139,14 @@ static FILETIME process_kernel_time;
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 PVOID  topLevelVectoredExceptionHandler = nullptr;
 LPTOP_LEVEL_EXCEPTION_FILTER previousUnhandledExceptionFilter = nullptr;
+LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo);
+LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo);
 #endif
+
+static void crash() {
+  Sleep(3000);
+  *((volatile int*)nullptr) = 0x1234;
+}
 
 // save DLL module handle, used by GetModuleFileName
 
@@ -1706,6 +1713,26 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
       *((volatile int*)nullptr) = 0x1234;
     }
   }
+
+#if defined(USE_VECTORED_EXCEPTION_HANDLING)
+  if (SetHandlersAfterDllLoad && LibraryToCrashOn != nullptr &&
+      strcmp(LibraryToCrashOn, name) == 0) {
+    topLevelVectoredExceptionHandler = AddVectoredExceptionHandler(1, topLevelVectoredExceptionFilter);
+    previousUnhandledExceptionFilter = SetUnhandledExceptionFilter(topLevelUnhandledExceptionFilter);
+    log_info(os)("AddVectoredExceptionHandler %s. Current top-level exception handler found: %d",
+      topLevelVectoredExceptionHandler == nullptr ? "failed" : "succeeded",
+      previousUnhandledExceptionFilter == nullptr ? "no" : "yes"
+    );
+  }
+
+  if (CrashAtLocation8b) {
+    if (LibraryToCrashOn == nullptr ||
+        strcmp(LibraryToCrashOn, name) == 0) {
+      crash();
+    }
+  }
+#endif
+
   if (result != nullptr) {
     Events::log_dll_message(nullptr, "Loaded shared library %s", name);
     // Recalculate pdb search path if a DLL was loaded successfully.

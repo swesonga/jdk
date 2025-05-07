@@ -44,6 +44,12 @@ product(bool, AlwaysRunTopLevelExceptionFilter, false,                    \
 product(bool, EnableOSExceptionWrapperSEH, false,                         \
         "Use a __try __except in the os_exception_wrapper")               \
                                                                           \
+product(bool, SetHandlersAfterDllLoad, false,                             \
+        "Set the vectored exception handler after loading java.dll")      \
+                                                                          \
+product(bool, CrashAtLocation8b, false,                                   \
+        "Crash at location 8b in the code")                               \
+                                                                          \
 product(bool, CrashAtLocation1, false,                                    \
         "Crash at location 1 in the code")                                \
                                                                           \
