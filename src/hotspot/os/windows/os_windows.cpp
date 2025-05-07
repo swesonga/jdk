@@ -1702,7 +1702,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   if (CrashAtLocation7) {
     if (LibraryToCrashOn == nullptr ||
         strcmp(LibraryToCrashOn, name) == 0) {
-      *((volatile int*)nullptr) = 0x1234;
+      crash();
     }
   }
   result = LoadLibrary(name);
@@ -1710,7 +1710,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   if (CrashAtLocation8) {
     if (LibraryToCrashOn == nullptr ||
         strcmp(LibraryToCrashOn, name) == 0) {
-      *((volatile int*)nullptr) = 0x1234;
+      crash();
     }
   }
 
@@ -1744,7 +1744,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   if (CrashAtLocation9) {
     if (LibraryToCrashOn == nullptr ||
         strcmp(LibraryToCrashOn, name) == 0) {
-      *((volatile int*)nullptr) = 0x1234;
+      crash();
     }
   }
   DWORD errcode = GetLastError();
@@ -1798,7 +1798,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   if (CrashAtLocation10) {
     if (LibraryToCrashOn == nullptr ||
         strcmp(LibraryToCrashOn, name) == 0) {
-      *((volatile int*)nullptr) = 0x1234;
+      crash();
     }
   }
   if (failed_to_get_lib_arch) {
