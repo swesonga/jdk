@@ -148,7 +148,7 @@ static int global_flag = 0;
 static void crash(int flag = 0) {
   global_flag = flag;
   log_info(os)("crashing with global_flag: %d", global_flag);
-  Sleep(3000);
+  Sleep(SleepMillisBeforeCrash);
   *((volatile int*)nullptr) = 0x1234;
 }
 

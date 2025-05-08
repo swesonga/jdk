@@ -47,6 +47,9 @@ product(bool, EnableOSExceptionWrapperSEH, false,                         \
 product(bool, SetHandlersAfterDllLoad, false,                             \
         "Set the vectored exception handler after loading java.dll")      \
                                                                           \
+product(int, SleepMillisBeforeCrash, 3000,                                \
+        "Time to sleep (in ms) before crashing the JVM")                  \
+                                                                          \
 product(bool, CrashAtLocation8b, false,                                   \
         "Crash at location 8b in the code")                               \
                                                                           \
