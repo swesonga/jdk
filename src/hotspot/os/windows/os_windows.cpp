@@ -1703,18 +1703,23 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   void* result;
   JFR_ONLY(NativeLibraryLoadEvent load_event(name, &result);)
 
-  if (LibraryToCrashOn == nullptr ||
-    strcmp(LibraryToCrashOn, name) == 0) {
+  bool is_dll_to_inspect = LibraryToCrashOn == nullptr || (strcmp(LibraryToCrashOn, name) == 0);
+
+  if (is_dll_to_inspect) {
     global_flag = 7;
     if (CrashAtLocation7) {
       crash(7);
     }
   }
-  result = LoadLibrary(name);
+
+  if (is_dll_to_inspect && UseLoadLibraryEx) {
+    result = LoadLibraryEx(name, nullptr, LoadLibraryExFlags);
+  } else {
+    result = LoadLibrary(name);
+  }
 
   if (CrashAtLocation8) {
-    if (LibraryToCrashOn == nullptr ||
-        strcmp(LibraryToCrashOn, name) == 0) {
+    if (is_dll_to_inspect) {
       crash(8);
     }
   }
@@ -1731,8 +1736,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   }
 
   if (CrashAtLocation8b) {
-    if (LibraryToCrashOn == nullptr ||
-        strcmp(LibraryToCrashOn, name) == 0) {
+    if (is_dll_to_inspect) {
       crash(0x8b);
     }
   }
@@ -1748,8 +1752,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   }
 
   if (CrashAtLocation9) {
-    if (LibraryToCrashOn == nullptr ||
-        strcmp(LibraryToCrashOn, name) == 0) {
+    if (is_dll_to_inspect) {
       crash();
     }
   }
@@ -1802,8 +1805,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   ::close(fd);
 
   if (CrashAtLocation10) {
-    if (LibraryToCrashOn == nullptr ||
-        strcmp(LibraryToCrashOn, name) == 0) {
+    if (is_dll_to_inspect) {
       crash();
     }
   }

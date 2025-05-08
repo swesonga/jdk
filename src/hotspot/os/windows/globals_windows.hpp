@@ -50,6 +50,12 @@ product(bool, SetHandlersAfterDllLoad, false,                             \
 product(int, SleepMillisBeforeCrash, 3000,                                \
         "Time to sleep (in ms) before crashing the JVM")                  \
                                                                           \
+product(bool, UseLoadLibraryEx, false,                                    \
+        "Load the LibraryToCrashOn using LoadLibraryEx")                  \
+                                                                          \
+product(int, LoadLibraryExFlags, 0,                                       \
+        "Flags to pass to LoadLibraryEx for the LibraryToCrashOn")        \
+                                                                          \
 product(bool, CrashAtLocation8b, false,                                   \
         "Crash at location 8b in the code")                               \
                                                                           \
