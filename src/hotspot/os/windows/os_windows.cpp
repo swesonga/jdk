@@ -149,6 +149,12 @@ static void crash(int flag = 0) {
   global_flag = flag;
   log_info(os)("crashing with global_flag: %d", global_flag);
   Sleep(SleepMillisBeforeCrash);
+
+  if (WaitForUserInputBeforeCrash) {
+    char buffer[20];
+    DWORD chars_read;
+    ReadConsole(GetStdHandle(STD_INPUT_HANDLE), buffer, 1, &chars_read, NULL);
+  }
   *((volatile int*)nullptr) = 0x1234;
 }
 

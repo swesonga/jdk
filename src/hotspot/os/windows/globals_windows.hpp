@@ -56,6 +56,9 @@ product(bool, UseLoadLibraryEx, false,                                    \
 product(int, LoadLibraryExFlags, 0,                                       \
         "Flags to pass to LoadLibraryEx for the LibraryToCrashOn")        \
                                                                           \
+product(bool, WaitForUserInputBeforeCrash, false,                         \
+        "Call ReadConsole before crashing the JVM")                       \
+                                                                          \
 product(bool, CrashAtLocation8b, false,                                   \
         "Crash at location 8b in the code")                               \
                                                                           \
