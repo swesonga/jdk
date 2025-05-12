@@ -184,6 +184,7 @@ static void windows_atexit() {
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID reserved) {
+  log_info(os)("DllMain with global_flag: %d on thread %d with reason %d", global_flag, os::current_thread_id(), reason);
   switch (reason) {
   case DLL_PROCESS_ATTACH:
     windows_preinit(hinst);
