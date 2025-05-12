@@ -147,7 +147,7 @@ static int global_flag = 0;
 
 static void crash(int flag = 0) {
   global_flag = flag;
-  log_info(os)("crashing with global_flag: %d", global_flag);
+  log_info(os)("crashing with global_flag: %d on thread %d", global_flag, os::current_thread_id());
   Sleep(SleepMillisBeforeCrash);
 
   if (WaitForUserInputBeforeCrash) {
@@ -1705,7 +1705,7 @@ static int _print_module(const char* fname, address base_address,
 // in case of error it checks if .dll/.so was built for the
 // same architecture as Hotspot is running on
 void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
-  log_info(os)("attempting shared library load of %s", name);
+  log_info(os)("attempting shared library load of %s on thread %d", name, os::current_thread_id());
   void* result;
   JFR_ONLY(NativeLibraryLoadEvent load_event(name, &result);)
 
@@ -1753,7 +1753,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
     Events::log_dll_message(nullptr, "Loaded shared library %s", name);
     // Recalculate pdb search path if a DLL was loaded successfully.
     SymbolEngine::recalc_search_path();
-    log_info(os)("shared library load of %s was successful", name);
+    log_info(os)("shared library load of %s on thread %d was successful", name, os::current_thread_id());
     return result;
   }
 
@@ -1768,7 +1768,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   lasterror(ebuf, (size_t) ebuflen);
   ebuf[ebuflen - 1] = '\0';
   Events::log_dll_message(nullptr, "Loading shared library %s failed, error code %lu", name, errcode);
-  log_info(os)("shared library load of %s failed, error code %lu", name, errcode);
+  log_info(os)("shared library load of %s on thread %d failed, error code %lu", name, os::current_thread_id(), errcode);
 
   if (errcode == ERROR_MOD_NOT_FOUND) {
     strncpy(ebuf, "Can't find dependent libraries", ebuflen - 1);
@@ -2883,7 +2883,7 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
-  log_info(os)("Entering topLevelVectoredExceptionFilter with global_flag: %d", global_flag);
+  log_info(os)("Entering topLevelVectoredExceptionFilter with global_flag: %d on thread %d", global_flag, os::current_thread_id());
   PEXCEPTION_RECORD exceptionRecord = exceptionInfo->ExceptionRecord;
 #if defined(_M_ARM64)
   address pc = (address) exceptionInfo->ContextRecord->Pc;
@@ -2916,14 +2916,14 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
     return topLevelExceptionFilter(exceptionInfo);
   }
 
-  log_info(os)("Leaving topLevelVectoredExceptionFilter");
+  log_info(os)("Leaving topLevelVectoredExceptionFilter - thread %d", os::current_thread_id());
   return EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
 
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
-  log_info(os)("Entering topLevelUnhandledExceptionFilter");
+  log_info(os)("Entering topLevelUnhandledExceptionFilter with global_flag: %d on thread %d", global_flag, os::current_thread_id());
   if (!InterceptOSException) {
     DWORD exceptionCode = exceptionInfo->ExceptionRecord->ExceptionCode;
 #if defined(_M_ARM64)
@@ -2942,7 +2942,7 @@ LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* excepti
     }
   }
 
-  log_info(os)("Leaving topLevelUnhandledExceptionFilter");
+  log_info(os)("Leaving topLevelUnhandledExceptionFilter - thread %d", os::current_thread_id());
   return previousUnhandledExceptionFilter ? previousUnhandledExceptionFilter(exceptionInfo) : EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
