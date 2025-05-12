@@ -143,7 +143,7 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
 LONG WINAPI topLevelUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo);
 #endif
 
-static int global_flag = 0;
+static volatile int global_flag = 0;
 
 static void crash(int flag = 0) {
   global_flag = flag;
