@@ -1713,9 +1713,9 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   bool is_dll_to_inspect = LibraryToCrashOn == nullptr || (strcmp(LibraryToCrashOn, name) == 0);
 
   if (is_dll_to_inspect) {
-    global_flag = 7;
+    global_flag = 0x40000007;
     if (CrashAtLocation7) {
-      crash(7);
+      crash(0x40000007);
     }
   }
 
@@ -1727,7 +1727,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
 
   if (CrashAtLocation8) {
     if (is_dll_to_inspect) {
-      crash(8);
+      crash(0x40000008);
     }
   }
 
@@ -1744,7 +1744,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
 
   if (CrashAtLocation8b) {
     if (is_dll_to_inspect) {
-      crash(0x8b);
+      crash(0x4000008b);
     }
   }
 #endif
@@ -2884,6 +2884,9 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 
 #if defined(USE_VECTORED_EXCEPTION_HANDLING)
 LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
+  if (IncrementGlobalFlag) {
+    global_flag++;
+  }
   log_info(os)("Entering topLevelVectoredExceptionFilter with global_flag: %d on thread %d", global_flag, os::current_thread_id());
   PEXCEPTION_RECORD exceptionRecord = exceptionInfo->ExceptionRecord;
 #if defined(_M_ARM64)

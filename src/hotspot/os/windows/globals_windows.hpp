@@ -59,6 +59,9 @@ product(int, LoadLibraryExFlags, 0,                                       \
 product(bool, WaitForUserInputBeforeCrash, false,                         \
         "Call ReadConsole before crashing the JVM")                       \
                                                                           \
+product(bool, IncrementGlobalFlag, false,                                 \
+        "Add 1 to the global_flag every time the VEH is executed")        \
+                                                                          \
 product(bool, CrashAtLocation8b, false,                                   \
         "Crash at location 8b in the code")                               \
                                                                           \
