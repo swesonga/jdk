@@ -62,6 +62,12 @@ product(bool, WaitForUserInputBeforeCrash, false,                         \
 product(bool, IncrementGlobalFlag, false,                                 \
         "Add 1 to the global_flag every time the VEH is executed")        \
                                                                           \
+product(bool, LogInExceptionWrapper, false,                               \
+        "Log progress in the os_exception_wrapper method")                \
+                                                                          \
+product(bool, LogInVectoredExceptionHandler, false,                       \
+        "Log progress in the VEH")                                        \
+                                                                          \
 product(bool, CrashAtLocation8b, false,                                   \
         "Crash at location 8b in the code")                               \
                                                                           \

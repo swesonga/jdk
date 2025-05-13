@@ -2887,7 +2887,9 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
   if (IncrementGlobalFlag) {
     global_flag++;
   }
-  log_info(os)("Entering topLevelVectoredExceptionFilter with global_flag: %d on thread %d", global_flag, os::current_thread_id());
+  if (LogInVectoredExceptionHandler) {
+    log_info(os)("Entering topLevelVectoredExceptionFilter with global_flag: %d on thread %d", global_flag, os::current_thread_id());
+  }
   PEXCEPTION_RECORD exceptionRecord = exceptionInfo->ExceptionRecord;
 #if defined(_M_ARM64)
   address pc = (address) exceptionInfo->ContextRecord->Pc;
@@ -2898,12 +2900,15 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
 #endif
 
   DWORD exception_code = exceptionRecord->ExceptionCode;
-  log_info(os)("exception_code in topLevelVectoredExceptionFilter: %d at PC: " PTR_FORMAT, exception_code,
-  p2i(pc));
+  if (LogInVectoredExceptionHandler) {
+    log_info(os)("exception_code in topLevelVectoredExceptionFilter: %d at PC: " PTR_FORMAT, exception_code, p2i(pc));
+  }
 
   // Fast path for code part of the code cache
   if (CodeCache::low_bound() <= pc && pc < CodeCache::high_bound()) {
-    log_info(os)("Calling topLevelExceptionFilter from location 1");
+    if (LogInVectoredExceptionHandler) {
+      log_info(os)("Calling topLevelExceptionFilter from location 1");
+    }
     return topLevelExceptionFilter(exceptionInfo);
   }
 
@@ -2911,16 +2916,22 @@ LONG WINAPI topLevelVectoredExceptionFilter(struct _EXCEPTION_POINTERS* exceptio
   // to our normal exception handler.
   CodeBlob* cb = CodeCache::find_blob(pc);
   if (cb != nullptr) {
-    log_info(os)("Calling topLevelExceptionFilter from location 2");
+    if (LogInVectoredExceptionHandler) {
+      log_info(os)("Calling topLevelExceptionFilter from location 2");
+    }
     return topLevelExceptionFilter(exceptionInfo);
   }
 
   if (AlwaysRunTopLevelExceptionFilter) {
-    log_info(os)("Calling topLevelExceptionFilter from location 3 due to -XX:+AlwaysRunTopLevelExceptionFilter");
+    if (LogInVectoredExceptionHandler) {
+      log_info(os)("Calling topLevelExceptionFilter from location 3 due to -XX:+AlwaysRunTopLevelExceptionFilter");
+    }
     return topLevelExceptionFilter(exceptionInfo);
   }
 
-  log_info(os)("Leaving topLevelVectoredExceptionFilter - thread %d", os::current_thread_id());
+  if (LogInVectoredExceptionHandler) {
+    log_info(os)("Leaving topLevelVectoredExceptionFilter - thread %d", os::current_thread_id());
+  }
   return EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
