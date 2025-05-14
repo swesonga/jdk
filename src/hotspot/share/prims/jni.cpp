@@ -3585,6 +3585,11 @@ static jint JNI_CreateJavaVM_inner(JavaVM **vm, void **penv, void *args) {
   bool can_try_again = true;
 
   result = Threads::create_vm((JavaVMInitArgs*) args, &can_try_again);
+
+  if (CrashAtLocation3) {
+    *((volatile int*)nullptr) = 0x1234;
+  }
+
   if (result == JNI_OK) {
     JavaThread *thread = JavaThread::current();
     assert(!thread->has_pending_exception(), "should have returned not OK");

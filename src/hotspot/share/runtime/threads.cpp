@@ -551,10 +551,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Initialize OopStorage for threadObj
   JavaThread::_thread_oop_storage = OopStorageSet::create_strong("Thread OopStorage", mtThread);
 
-  if (CrashAtLocation2) {
-    *((volatile int*)nullptr) = 0x1234;
-  }
-
   // Attach the main thread to this os thread
   JavaThread* main_thread = new JavaThread();
   main_thread->set_thread_state(_thread_in_vm);
@@ -579,15 +575,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     return JNI_ENOMEM;
   }
 
-  if (CrashAtLocation3) {
-    *((volatile int*)nullptr) = 0x1234;
-  }
-
   JFR_ONLY(Jfr::initialize_main_thread(main_thread);)
-
-  if (CrashAtLocation3a) {
-    *((volatile int*)nullptr) = 0x1234;
-  }
 
   // Enable guard page *after* os::create_main_thread(), otherwise it would
   // crash Linux VM, see notes in os_linux.cpp.
@@ -597,10 +585,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   ObjectMonitor::Initialize();
   ObjectSynchronizer::initialize();
 
-  if (CrashAtLocation3b) {
-    *((volatile int*)nullptr) = 0x1234;
-  }
-
   // Initialize global modules
   jint status = init_globals();
   if (status != JNI_OK) {
@@ -609,25 +593,13 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     return status;
   }
 
-  if (CrashAtLocation3c) {
-    *((volatile int*)nullptr) = 0x1234;
-  }
-
   // Have the WatcherThread read the release file in the background.
   ReadReleaseFileTask* read_task = new ReadReleaseFileTask();
   read_task->enroll();
 
-  if (CrashAtLocation3d) {
-    *((volatile int*)nullptr) = 0x1234;
-  }
-
   // Create WatcherThread as soon as we can since we need it in case
   // of hangs during error reporting.
   WatcherThread::start();
-
-  if (CrashAtLocation3e) {
-    *((volatile int*)nullptr) = 0x1234;
-  }
 
   // Add main_thread to threads list to finish barrier setup with
   // on_thread_attach.  Should be before starting to build Java objects in
@@ -637,15 +609,8 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     Threads::add(main_thread);
   }
 
-  if (CrashAtLocation4) {
-    *((volatile int*)nullptr) = 0x1234;
-  }
-
   status = init_globals2();
 
-  if (CrashAtLocation16) {
-    *((volatile int*)nullptr) = 0x1234;
-  }
   if (status != JNI_OK) {
     Threads::remove(main_thread, false);
     // It is possible that we managed to fully initialize Universe but have then
@@ -691,10 +656,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     }
   }
 
-  if (CrashAtLocation6) {
-    // *((volatile int*)nullptr) = 0x1234;
-  }
-
   assert(Universe::is_fully_initialized(), "not initialized");
   if (VerifyDuringStartup) {
     // Make sure we're starting with a clean slate.
@@ -725,10 +686,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     JvmtiAgentList::load_xrun_agents();
   }
 
-  if (CrashAtLocation7) {
-    // *((volatile int*)nullptr) = 0x1234;
-  }
-
   initialize_java_lang_classes(main_thread, CHECK_JNI_ERR);
 
   quicken_jni_functions();
@@ -743,10 +700,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   LogConfiguration::post_initialize();
   Metaspace::post_initialize();
   MutexLockerImpl::post_initialize();
-
-  if (CrashAtLocation8) {
-    // *((volatile int*)nullptr) = 0x1234;
-  }
 
   HOTSPOT_VM_INIT_END();
 
@@ -764,10 +717,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 
   // Signal Dispatcher needs to be started before VMInit event is posted
   os::initialize_jdk_signal_support(CHECK_JNI_ERR);
-
-  if (CrashAtLocation9) {
-    // *((volatile int*)nullptr) = 0x1234;
-  }
 
   // Start Attach Listener if +StartAttachListener or it can't be started lazily
   if (!DisableAttachMechanism) {
@@ -791,10 +740,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 
   // Start the monitor deflation thread:
   MonitorDeflationThread::initialize();
-
-  if (CrashAtLocation10) {
-    // *((volatile int*)nullptr) = 0x1234;
-  }
 
   // initialize compiler(s)
 #if defined(COMPILER1) || COMPILER2_OR_JVMCI
@@ -828,10 +773,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     SystemDictionary::restore_archived_method_handle_intrinsics();
   }
 
-  if (CrashAtLocation11) {
-    // *((volatile int*)nullptr) = 0x1234;
-  }
-
   // Start string deduplication thread if requested.
   if (StringDedup::is_enabled()) {
     StringDedup::start();
@@ -854,10 +795,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   HeapShared::initialize_test_class_from_archive(THREAD);
 #endif
 
-  if (CrashAtLocation12) {
-    // *((volatile int*)nullptr) = 0x1234;
-  }
-
   JFR_ONLY(Jfr::on_create_vm_2();)
 
   // Always call even when there are not JVMTI environments yet, since environments
@@ -872,10 +809,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 
   // cache the system and platform class loaders
   SystemDictionary::compute_java_loaders(CHECK_JNI_ERR);
-
-  if (CrashAtLocation13) {
-    // *((volatile int*)nullptr) = 0x1234;
-  }
 
   if (Continuations::enabled()) {
     // Initialize Continuation class now so that failure to create enterSpecial/doYield
@@ -897,10 +830,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 
   // Notify JVMTI agents that VM initialization is complete - nop if no agents.
   JvmtiExport::post_vm_initialized();
-
-  if (CrashAtLocation14) {
-    // *((volatile int*)nullptr) = 0x1234;
-  }
 
 #if INCLUDE_JVMCI
   if (force_JVMCI_initialization) {
@@ -931,10 +860,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     CLEAR_PENDING_EXCEPTION;
   }
 
-  if (CrashAtLocation15) {
-    // *((volatile int*)nullptr) = 0x1234;
-  }
-
   // Let WatcherThread run all registered periodic tasks now.
   // NOTE:  All PeriodicTasks should be registered by now. If they
   //   aren't, late joiners might appear to start slowly (we might
@@ -958,10 +883,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     LogStreamHandle(Info, perf, class, link) log;
     log.print_cr("At VM initialization completion:");
     ClassLoader::print_counters(&log);
-  }
-
-  if (CrashAtLocation16) {
-    // *((volatile int*)nullptr) = 0x1234;
   }
 
   return JNI_OK;

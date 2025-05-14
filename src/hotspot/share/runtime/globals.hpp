@@ -2002,6 +2002,99 @@ const int ObjectAlignmentInBytes = 8;
   product(bool, UseThreadsLockThrottleLock, true, DIAGNOSTIC,               \
           "Use an extra lock during Thread start and exit to alleviate"     \
           "contention on Threads_lock.")                                    \
+                                                                            \
+  product(bool, AlwaysRunTopLevelExceptionFilter, false,                    \
+          "Always execute the top level exception filter")                  \
+                                                                            \
+  product(bool, EnableOSExceptionWrapperSEH, false,                         \
+          "Use a __try __except in the os_exception_wrapper")               \
+                                                                            \
+  product(bool, SetHandlersAfterDllLoad, false,                             \
+          "Set the vectored exception handler after loading java.dll")      \
+                                                                            \
+  product(int, SleepMillisBeforeCrash, 3000,                                \
+          "Time to sleep (in ms) before crashing the JVM")                  \
+                                                                            \
+  product(bool, UseLoadLibraryEx, false,                                    \
+          "Load the LibraryToCrashOn using LoadLibraryEx")                  \
+                                                                            \
+  product(int, LoadLibraryExFlags, 0,                                       \
+          "Flags to pass to LoadLibraryEx for the LibraryToCrashOn")        \
+                                                                            \
+  product(bool, WaitForUserInputBeforeCrash, false,                         \
+          "Call ReadConsole before crashing the JVM")                       \
+                                                                            \
+  product(bool, IncrementGlobalFlag, false,                                 \
+          "Add 1 to the global_flag every time the VEH is executed")        \
+                                                                            \
+  product(bool, LogInExceptionWrapper, false,                               \
+          "Log progress in the os_exception_wrapper method")                \
+                                                                            \
+  product(bool, LogInVectoredExceptionHandler, false,                       \
+          "Log progress in the VEH")                                        \
+                                                                            \
+  product(bool, CrashAtLocation1, false,                                    \
+          "Crash at location 1 in the code")                                \
+                                                                            \
+  product(bool, CrashAtLocation2, false,                                    \
+          "Crash at location 2 in the code")                                \
+                                                                            \
+  product(bool, CrashAtLocation3, false,                                    \
+          "Crash at location 3 in the code")                                \
+                                                                            \
+  product(bool, CrashAtLocation4, false,                                    \
+          "Crash at location 4 in the code")                                \
+                                                                            \
+  product(bool, CrashAtLocation5, false,                                    \
+          "Crash at location 5 in the code")                                \
+                                                                            \
+  product(bool, CrashAtLocation6, false,                                    \
+          "Crash at location 6 in the code")                                \
+                                                                            \
+  product(bool, CrashAtLocation7, false,                                    \
+          "Crash at location 7 in the code")                                \
+                                                                            \
+  product(bool, CrashAtLocation8, false,                                    \
+          "Crash at location 8 in the code")                                \
+                                                                            \
+  product(bool, CrashAtLocation9, false,                                    \
+          "Crash at location 9 in the code")                                \
+                                                                            \
+  product(bool, CrashAtLocation10, false,                                   \
+          "Crash at location 10 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation11, false,                                   \
+          "Crash at location 11 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation12, false,                                   \
+          "Crash at location 12 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation13, false,                                   \
+          "Crash at location 13 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation14, false,                                   \
+          "Crash at location 14 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation15, false,                                   \
+          "Crash at location 15 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation16, false,                                   \
+          "Crash at location 16 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation17, false,                                   \
+          "Crash at location 17 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation18, false,                                   \
+          "Crash at location 18 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation19, false,                                   \
+          "Crash at location 19 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation20, false,                                   \
+          "Crash at location 20 in the code")                               \
+                                                                            \
+  product(ccstr, LibraryToCrashOn, nullptr,                                 \
+          "File being loaded before bug")                                   \
 
 // end of RUNTIME_FLAGS
 

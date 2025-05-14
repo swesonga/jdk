@@ -122,36 +122,19 @@ jint init_globals() {
 #endif
   bytecodes_init();
 
-  if (CrashAtLocation5) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
-
   classLoader_init1();
 
-  if (CrashAtLocation16) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
   compilationPolicy_init();
   codeCache_init();
   VM_Version_init();              // depends on codeCache_init for emitting code
   // stub routines in initial blob are referenced by later generated code
   initial_stubs_init();
 
-  if (CrashAtLocation8) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
   // stack overflow exception blob is referenced by the interpreter
   SharedRuntime::generate_initial_stubs();
   jint status = universe_init();  // dependent on codeCache_init and
                                   // initial_stubs_init and metaspace_init.
 
-  if (CrashAtLocation9) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
   if (status != JNI_OK)
     return status;
 
@@ -166,45 +149,21 @@ jint init_globals() {
   AsyncLogWriter::initialize();
   gc_barrier_stubs_init();   // depends on universe_init, must be before interpreter_init
 
-  if (CrashAtLocation10) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
   continuations_init();      // must precede continuation stub generation
   continuation_stubs_init(); // depends on continuations_init
 
-  if (CrashAtLocation11) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
 #if INCLUDE_JFR
   SharedRuntime::generate_jfr_stubs();
 #endif
   interpreter_init_stub();   // before methods get loaded
   accessFlags_init();
 
-  if (CrashAtLocation12) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
   InterfaceSupport_init();
 
-  if (CrashAtLocation13) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
   VMRegImpl::set_regName();  // need this before generate_stubs (for printing oop maps).
 
-  if (CrashAtLocation14) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
   SharedRuntime::generate_stubs();
 
-  if (CrashAtLocation15) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
   return JNI_OK;
 }
 

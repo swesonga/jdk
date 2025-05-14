@@ -1713,9 +1713,9 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   bool is_dll_to_inspect = LibraryToCrashOn == nullptr || (strcmp(LibraryToCrashOn, name) == 0);
 
   if (is_dll_to_inspect) {
-    global_flag = 0x40000007;
-    if (CrashAtLocation7) {
-      crash(0x40000007);
+    global_flag = 0x40000001;
+    if (CrashAtLocation1) {
+      crash(0x40000001);
     }
   }
 
@@ -1725,9 +1725,9 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
     result = LoadLibrary(name);
   }
 
-  if (CrashAtLocation8) {
+  if (CrashAtLocation2) {
     if (is_dll_to_inspect) {
-      crash(0x40000008);
+      crash(0x40000002);
     }
   }
 
@@ -1741,12 +1741,6 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
       previousUnhandledExceptionFilter == nullptr ? "no" : "yes"
     );
   }
-
-  if (CrashAtLocation8b) {
-    if (is_dll_to_inspect) {
-      crash(0x4000008b);
-    }
-  }
 #endif
 
   global_flag = 0;
@@ -1758,11 +1752,6 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
     return result;
   }
 
-  if (CrashAtLocation9) {
-    if (is_dll_to_inspect) {
-      crash();
-    }
-  }
   DWORD errcode = GetLastError();
   // Read system error message into ebuf
   // It may or may not be overwritten below (in the for loop and just above)
@@ -1811,11 +1800,6 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
 
   ::close(fd);
 
-  if (CrashAtLocation10) {
-    if (is_dll_to_inspect) {
-      crash();
-    }
-  }
   if (failed_to_get_lib_arch) {
     // file i/o error - report os::lasterror(...) msg
     JFR_ONLY(load_event.set_error_msg("failed to get lib architecture");)
@@ -4637,11 +4621,6 @@ jint os::init_2(void) {
 #endif
   }
   log_info(os, thread)("The SetThreadDescription API is%s available.", _SetThreadDescription == nullptr ? " not" : "");
-
-  if (CrashAtLocation1) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
 
   return JNI_OK;
 }

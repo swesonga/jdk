@@ -633,6 +633,10 @@ JavaMain(void* _args)
     CHECK_EXCEPTION_NULL_LEAVE(noArgMainField);
     noArgMain = (*env)->GetStaticBooleanField(env, helperClass, noArgMainField);
 
+    if (argc > 1 && strcmp(argv[1], "-XX:+CrashAtLocation3") == 0) {
+        *((volatile int*)0) = 0x1234;
+    }
+
     if (isStaticMain) {
         if (noArgMain) {
             ret = invokeStaticMainWithoutArgs(env, mainClass);

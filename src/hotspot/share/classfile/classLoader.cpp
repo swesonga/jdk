@@ -831,19 +831,9 @@ void ClassLoader::load_java_library() {
     return;
   }
 
-  if (CrashAtLocationB) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
-
   void *javalib_handle = os::native_java_library();
   if (javalib_handle == nullptr) {
     vm_exit_during_initialization("Unable to load java library", nullptr);
-  }
-
-  if (CrashAtLocation11) {
-    volatile int* spot = nullptr;
-    *spot = 0;
   }
 
   CanonicalizeEntry = CAST_TO_FN_PTR(canonicalize_fn_t, dll_lookup(javalib_handle, "JDK_Canonicalize", nullptr));
@@ -1365,25 +1355,11 @@ void ClassLoader::initialize(TRAPS) {
     }
   }
 
-  if (CrashAtLocationA) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
-
   // lookup java library entry points
   load_java_library();
 
-  if (CrashAtLocation12) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
   // jimage library entry points are loaded below, in lookup_vm_options
   setup_bootstrap_search_path(THREAD);
-
-  if (CrashAtLocation13) {
-    volatile int* spot = nullptr;
-    *spot = 0;
-  }
 }
 
 static char* lookup_vm_resource(JImageFile *jimage, const char *jimage_version, const char *path) {
