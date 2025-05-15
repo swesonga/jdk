@@ -34,6 +34,7 @@
 #include "oops/oop.inline.hpp"
 #include "prims/jniCheck.hpp"
 #include "prims/jvmtiExport.hpp"
+#include "runtime/atomic.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/javaCalls.hpp"
@@ -48,6 +49,22 @@
 #if INCLUDE_JVMCI
 #include "jvmci/jvmciJavaClasses.hpp"
 #endif
+
+#include <Windows.h>
+
+static volatile int call_helper_calls = 0;
+
+static void my_crash_javaCalls(int flag = 0) {
+  log_info(os)("crashing with flag: %d on thread %d after %d 'call_helper' calls", flag, os::current_thread_id(), call_helper_calls);
+  Sleep(SleepMillisBeforeCrash);
+
+  if (WaitForUserInputBeforeCrash) {
+    char buffer[20];
+    DWORD chars_read;
+    ReadConsole(GetStdHandle(STD_INPUT_HANDLE), buffer, 1, &chars_read, NULL);
+  }
+  *((volatile int*)nullptr) = 0x1234;
+}
 
 // -----------------------------------------------------
 // Implementation of JavaCallWrapper
@@ -320,10 +337,24 @@ void JavaCalls::call(JavaValue* result, const methodHandle& method, JavaCallArgu
   // This is used for e.g. Win32 structured exception handlers.
   // Need to wrap each and every time, since there might be native code down the
   // stack that has installed its own exception handlers.
+
+  if (CrashAtLocation8) {
+    if (call_helper_calls == CrashOnNthCallHelperInvocation) {
+      my_crash_javaCalls(8);
+    }
+  }
+
   os::os_exception_wrapper(call_helper, result, method, args, THREAD);
+
+  if (CrashAtLocation9) {
+    if (call_helper_calls == CrashOnNthCallHelperInvocation) {
+      my_crash_javaCalls(9);
+    }
+  }
 }
 
 void JavaCalls::call_helper(JavaValue* result, const methodHandle& method, JavaCallArguments* args, TRAPS) {
+  Atomic::inc(&call_helper_calls);
 
   JavaThread* thread = THREAD;
   assert(method.not_null(), "must have a method to call");
@@ -376,6 +407,12 @@ void JavaCalls::call_helper(JavaValue* result, const methodHandle& method, JavaC
     os::map_stack_shadow_pages(sp);
   }
 
+  if (CrashAtLocation10) {
+    if (call_helper_calls == CrashOnNthCallHelperInvocation) {
+      my_crash_javaCalls(10);
+    }
+  }
+
   // do call
   { JavaCallWrapper link(method, receiver, result, CHECK);
     { HandleMark hm(thread);  // HandleMark used by HandleMarkCleaner
@@ -412,6 +449,12 @@ void JavaCalls::call_helper(JavaValue* result, const methodHandle& method, JavaC
 #endif
         }
       }
+
+      if (CrashAtLocation11) {
+        if (call_helper_calls == CrashOnNthCallHelperInvocation) {
+          my_crash_javaCalls(11);
+        }
+      }
       StubRoutines::call_stub()(
         (address)&link,
         // (intptr_t*)&(result->_value), // see NOTE above (compiler problem)
@@ -423,6 +466,12 @@ void JavaCalls::call_helper(JavaValue* result, const methodHandle& method, JavaC
         args->size_of_parameters(),
         CHECK
       );
+
+      if (CrashAtLocation12) {
+        if (call_helper_calls == CrashOnNthCallHelperInvocation) {
+          my_crash_javaCalls(12);
+        }
+      }
 
       result = link.result();  // circumvent MS C++ 5.0 compiler bug (result is clobbered across call)
       // Preserve oop return value across possible gc points

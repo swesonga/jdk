@@ -2033,6 +2033,12 @@ const int ObjectAlignmentInBytes = 8;
   product(bool, LogInVectoredExceptionHandler, false,                       \
           "Log progress in the VEH")                                        \
                                                                             \
+  product(int, CrashOnNthStaticVoidMainCall, -1,                            \
+          "Completed static void main calls after which to crash")          \
+                                                                            \
+  product(int, CrashOnNthCallHelperInvocation, -1,                          \
+          "Completed call_helper calls after which to crash")               \
+                                                                            \
   product(bool, CrashAtLocation0, false,                                    \
           "Crash at location 0 in the code")                                \
                                                                             \
@@ -2095,6 +2101,12 @@ const int ObjectAlignmentInBytes = 8;
                                                                             \
   product(bool, CrashAtLocation20, false,                                   \
           "Crash at location 20 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation98, false,                                   \
+          "Crash at location 98 in the code")                               \
+                                                                            \
+  product(bool, CrashAtLocation99, false,                                   \
+          "Crash at location 99 in the code")                               \
                                                                             \
   product(ccstr, LibraryToCrashOn, nullptr,                                 \
           "File being loaded before bug")                                   \

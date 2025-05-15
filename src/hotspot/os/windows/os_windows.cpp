@@ -1714,7 +1714,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
 
   if (is_dll_to_inspect) {
     global_flag = 0x40000001;
-    if (CrashAtLocation1) {
+    if (CrashAtLocation98) {
       crash(0x40000001);
     }
   }
@@ -1725,7 +1725,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
     result = LoadLibrary(name);
   }
 
-  if (CrashAtLocation2) {
+  if (CrashAtLocation99) {
     if (is_dll_to_inspect) {
       crash(0x40000002);
     }

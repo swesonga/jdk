@@ -439,11 +439,11 @@ invokeStaticMainWithArgs(JNIEnv *env, jclass mainClass, jobjectArray mainArgs) {
         // static main(String[]) not found
         return 0;
     }
-    if (crash_location == 12) {
+    if (crash_location == 2) {
         crash(crash_location);
     }
     (*env)->CallStaticVoidMethod(env, mainClass, mainID, mainArgs);
-    if (crash_location == 20) {
+    if (crash_location == 3) {
         crash(crash_location);
     }
     return 1; // method was invoked
@@ -557,10 +557,6 @@ JavaMain(void* _args)
         exit(1);
     }
 
-    if (crash_location == 3) {
-        crash(crash_location);
-    }
-
     if (showSettings != NULL) {
         ShowSettings(env, showSettings);
         CHECK_EXCEPTION_LEAVE(1);
@@ -614,10 +610,6 @@ JavaMain(void* _args)
         LEAVE();
     }
 
-    if (crash_location == 4) {
-        crash(crash_location);
-    }
-
     FreeKnownVMs(); /* after last possible PrintUsage */
 
     if (JLI_IsTraceLauncher()) {
@@ -636,10 +628,6 @@ JavaMain(void* _args)
     }
 
     ret = 1;
-
-    if (crash_location == 5) {
-        crash(crash_location);
-    }
 
     /*
      * See bugid 5030265.  The Main-Class name has already been parsed
@@ -665,9 +653,6 @@ JavaMain(void* _args)
     mainClass = LoadMainClass(env, mode, what);
     CHECK_EXCEPTION_NULL_LEAVE(mainClass);
 
-    if (crash_location == 6) {
-        crash(crash_location);
-    }
     /*
      * In some cases when launching an application that needs a helper, e.g., a
      * JavaFX application with no main method, the mainClass will not be the
@@ -677,17 +662,9 @@ JavaMain(void* _args)
     appClass = GetApplicationClass(env);
     CHECK_EXCEPTION_NULL_LEAVE(appClass);
 
-    if (crash_location == 7) {
-        crash(crash_location);
-    }
-
     /* Build platform specific argument array */
     mainArgs = CreateApplicationArgs(env, argv, argc);
     CHECK_EXCEPTION_NULL_LEAVE(mainArgs);
-
-    if (crash_location == 8) {
-        crash(crash_location);
-    }
 
     if (dryRun) {
         ret = 0;
@@ -704,10 +681,6 @@ JavaMain(void* _args)
     PostJVMInit(env, appClass, vm);
     CHECK_EXCEPTION_LEAVE(1);
 
-    if (crash_location == 9) {
-        crash(crash_location);
-    }
-
     /*
      * The main method is invoked here so that extraneous java stacks are not in
      * the application stack trace.
@@ -718,15 +691,11 @@ JavaMain(void* _args)
     CHECK_EXCEPTION_NULL_LEAVE(isStaticMainField);
     isStaticMain = (*env)->GetStaticBooleanField(env, helperClass, isStaticMainField);
 
-    if (crash_location == 10) {
-        crash(crash_location);
-    }
-
     noArgMainField = (*env)->GetStaticFieldID(env, helperClass, "noArgMain", "Z");
     CHECK_EXCEPTION_NULL_LEAVE(noArgMainField);
     noArgMain = (*env)->GetStaticBooleanField(env, helperClass, noArgMainField);
 
-    if (crash_location == 11) {
+    if (crash_location == 1) {
         crash(crash_location);
     }
 

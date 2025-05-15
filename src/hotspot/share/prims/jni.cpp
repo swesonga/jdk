@@ -73,6 +73,7 @@
 #include "runtime/arguments.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/fieldDescriptor.inline.hpp"
+#include "runtime/globals.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/java.hpp"
@@ -99,6 +100,22 @@
 #if INCLUDE_JFR
 #include "jfr/jfr.hpp"
 #endif
+
+#include <Windows.h>
+
+static volatile int static_void_main_calls = 0;
+
+static void my_crash_jni(int flag = 0) {
+  log_info(os)("crashing with flag: %d on thread %d after %d 'static void main' calls", flag, os::current_thread_id(), static_void_main_calls);
+  Sleep(SleepMillisBeforeCrash);
+
+  if (WaitForUserInputBeforeCrash) {
+    char buffer[20];
+    DWORD chars_read;
+    ReadConsole(GetStdHandle(STD_INPUT_HANDLE), buffer, 1, &chars_read, NULL);
+  }
+  *((volatile int*)nullptr) = 0x1234;
+}
 
 static jint CurrentVersion = JNI_VERSION_24;
 
@@ -879,8 +896,20 @@ static void jni_invoke_static(JNIEnv *env, JavaValue* result, jobject receiver, 
   // Initialize result type
   result->set_type(args->return_type());
 
+  if (CrashAtLocation6) {
+    if (static_void_main_calls == CrashOnNthStaticVoidMainCall) {
+      my_crash_jni(6);
+    }
+  }
+
   // Invoke the method. Result is returned as oop.
   JavaCalls::call(result, method, &java_args, CHECK);
+
+  if (CrashAtLocation7) {
+    if (static_void_main_calls == CrashOnNthStaticVoidMainCall) {
+      my_crash_jni(7);
+    }
+  }
 
   // Convert result
   if (is_reference_type(result->get_type())) {
@@ -1709,7 +1738,19 @@ JNI_ENTRY(void, jni_CallStaticVoidMethod(JNIEnv *env, jclass cls, jmethodID meth
   va_start(args, methodID);
   JavaValue jvalue(T_VOID);
   JNI_ArgumentPusherVaArg ap(methodID, args);
+
+  Atomic::inc(&static_void_main_calls);
+
+  if (CrashAtLocation4) {
+    my_crash_jni(4);
+  }
+
   jni_invoke_static(env, &jvalue, nullptr, JNI_STATIC, methodID, &ap, CHECK);
+
+  if (CrashAtLocation5) {
+    my_crash_jni(5);
+  }
+
   va_end(args);
 JNI_END
 
