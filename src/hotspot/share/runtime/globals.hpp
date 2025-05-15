@@ -2033,6 +2033,9 @@ const int ObjectAlignmentInBytes = 8;
   product(bool, LogInVectoredExceptionHandler, false,                       \
           "Log progress in the VEH")                                        \
                                                                             \
+  product(bool, CrashAtLocation0, false,                                    \
+          "Crash at location 0 in the code")                                \
+                                                                            \
   product(bool, CrashAtLocation1, false,                                    \
           "Crash at location 1 in the code")                                \
                                                                             \
