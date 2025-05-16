@@ -251,10 +251,6 @@ public:
     T value_to_put = normalize_for_write(x);
     //*addr() = value_to_put;
     volatile T* spot = addr();
-    if (spot == nullptr) {
-      Sleep(5000);
-      TerminateProcess(GetCurrentProcess(), 1);
-    }
     *spot = value_to_put;
   }
 
@@ -268,10 +264,6 @@ public:
   void put_volatile(T x) {
     GuardUnsafeAccess guard(_thread);
     volatile T* spot = addr();
-    if (spot == nullptr) {
-      Sleep(5000);
-      TerminateProcess(GetCurrentProcess(), 1);
-    }
     RawAccess<MO_SEQ_CST>::store(spot, normalize_for_write(x));
   }
 };
