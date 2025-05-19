@@ -53,9 +53,14 @@
 #include <Windows.h>
 
 static volatile int call_helper_calls = 0;
+static volatile int flags_for_jni_invoke_static = 0;
 
 static void my_crash_javaCalls(int flag = 0) {
-  log_info(os)("crashing with flag: %d on thread %d after %d 'call_helper' calls", flag, os::current_thread_id(), call_helper_calls);
+  log_info(os)("crashing with flag: %d on thread %d after %d 'call_helper' calls with flags %d",
+    flag,
+    os::current_thread_id(),
+    call_helper_calls,
+    flags_for_jni_invoke_static);
   Sleep(SleepMillisBeforeCrash);
 
   if (WaitForUserInputBeforeCrash) {
@@ -353,6 +358,28 @@ void JavaCalls::call(JavaValue* result, const methodHandle& method, JavaCallArgu
   }
 }
 
+void JavaCalls::call_for_jni_invoke_static(JavaValue* result, const methodHandle& method, JavaCallArguments* args, int flags, TRAPS) {
+  // Check if we need to wrap a potential OS exception handler around thread.
+  // This is used for e.g. Win32 structured exception handlers.
+  // Need to wrap each and every time, since there might be native code down the
+  // stack that has installed its own exception handlers.
+  flags_for_jni_invoke_static = flags;
+
+  if (CrashAtLocation13) {
+    if (call_helper_calls == CrashOnNthCallHelperInvocation) {
+      my_crash_javaCalls(13);
+    }
+  }
+
+  os::os_exception_wrapper(call_helper, result, method, args, THREAD);
+
+  if (CrashAtLocation14) {
+    if (call_helper_calls == CrashOnNthCallHelperInvocation) {
+      my_crash_javaCalls(14);
+    }
+  }
+}
+
 void JavaCalls::call_helper(JavaValue* result, const methodHandle& method, JavaCallArguments* args, TRAPS) {
   Atomic::inc(&call_helper_calls);
 
@@ -408,8 +435,10 @@ void JavaCalls::call_helper(JavaValue* result, const methodHandle& method, JavaC
   }
 
   if (CrashAtLocation10) {
-    if (call_helper_calls == CrashOnNthCallHelperInvocation) {
-      my_crash_javaCalls(10);
+    if (CrashOnNthCallHelperInvocation == -1 || call_helper_calls == CrashOnNthCallHelperInvocation) {
+      if (!CrashCallHelperOnJniInvokeStaticOnly || flags_for_jni_invoke_static) {
+        my_crash_javaCalls(10);
+      }
     }
   }
 
@@ -451,8 +480,10 @@ void JavaCalls::call_helper(JavaValue* result, const methodHandle& method, JavaC
       }
 
       if (CrashAtLocation11) {
-        if (call_helper_calls == CrashOnNthCallHelperInvocation) {
-          my_crash_javaCalls(11);
+        if (CrashOnNthCallHelperInvocation == -1 || call_helper_calls == CrashOnNthCallHelperInvocation) {
+          if (!CrashCallHelperOnJniInvokeStaticOnly || flags_for_jni_invoke_static) {
+            my_crash_javaCalls(11);
+          }
         }
       }
       StubRoutines::call_stub()(
@@ -468,8 +499,10 @@ void JavaCalls::call_helper(JavaValue* result, const methodHandle& method, JavaC
       );
 
       if (CrashAtLocation12) {
-        if (call_helper_calls == CrashOnNthCallHelperInvocation) {
-          my_crash_javaCalls(12);
+        if (CrashOnNthCallHelperInvocation == -1 || call_helper_calls == CrashOnNthCallHelperInvocation) {
+          if (!CrashCallHelperOnJniInvokeStaticOnly || flags_for_jni_invoke_static) {
+            my_crash_javaCalls(12);
+          }
         }
       }
 

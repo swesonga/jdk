@@ -250,6 +250,7 @@ class JavaCalls: AllStatic {
 
   // Low-level interface
   static void call(JavaValue* result, const methodHandle& method, JavaCallArguments* args, TRAPS);
+  static void call_for_jni_invoke_static(JavaValue* result, const methodHandle& method, JavaCallArguments* args, int flags, TRAPS);
 };
 
 #endif // SHARE_RUNTIME_JAVACALLS_HPP

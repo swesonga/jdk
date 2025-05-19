@@ -903,7 +903,9 @@ static void jni_invoke_static(JNIEnv *env, JavaValue* result, jobject receiver, 
   }
 
   // Invoke the method. Result is returned as oop.
-  JavaCalls::call(result, method, &java_args, CHECK);
+  int flags = 1;
+  JavaCalls::call_for_jni_invoke_static(result, method, &java_args, flags, CHECK);
+  flags = 0;
 
   if (CrashAtLocation7) {
     if (static_void_main_calls == CrashOnNthStaticVoidMainCall) {

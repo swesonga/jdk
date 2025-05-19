@@ -2033,6 +2033,9 @@ const int ObjectAlignmentInBytes = 8;
   product(bool, LogInVectoredExceptionHandler, false,                       \
           "Log progress in the VEH")                                        \
                                                                             \
+  product(bool, CrashCallHelperOnJniInvokeStaticOnly, false,                \
+          "Crash call_helper on jni_invoke_static")                         \
+                                                                            \
   product(int, CrashOnNthStaticVoidMainCall, -1,                            \
           "Completed static void main calls after which to crash")          \
                                                                             \
