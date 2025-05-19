@@ -4543,7 +4543,12 @@ jint os::init_2(void) {
   bool schedules_all_processor_groups = win32::is_windows_11_or_greater() || win32::is_windows_server_2022_or_greater();
   log_debug(os)(schedules_all_processor_groups ? auto_schedules_message : no_auto_schedules_message);
   log_debug(os)("%d logical processors found.", processor_count());
-  log_debug(os)("Debugging missing crashdumps: 2025-04-29 0720");
+
+#pragma warning(push)
+#pragma warning(disable : 5048)
+  // warning C5048: Use of macro '__DATE__' may result in non-deterministic output
+  log_debug(os)("Debugging missing crashdumps: " __DATE__ " " __TIME__);
+#pragma warning(pop)
 
   // This could be set any time but all platforms
   // have to set it the same so we have to mirror Solaris.
