@@ -382,6 +382,10 @@ void JavaCalls::call_for_jni_invoke_static(JavaValue* result, const methodHandle
 
 void JavaCalls::call_helper(JavaValue* result, const methodHandle& method, JavaCallArguments* args, TRAPS) {
   Atomic::inc(&call_helper_calls);
+  log_info(os)("Entering call_helper invocation %d on thread %d with flags_for_jni_invoke_static %d",
+    call_helper_calls,
+    os::current_thread_id(),
+    flags_for_jni_invoke_static);
 
   JavaThread* thread = THREAD;
   assert(method.not_null(), "must have a method to call");
@@ -523,6 +527,11 @@ void JavaCalls::call_helper(JavaValue* result, const methodHandle& method, JavaC
     result->set_oop(thread->vm_result());
     thread->set_vm_result(nullptr);
   }
+
+  log_info(os)("Leaving call_helper invocation %d on thread %d with flags_for_jni_invoke_static %d",
+    call_helper_calls,
+    os::current_thread_id(),
+    flags_for_jni_invoke_static);
 }
 
 
