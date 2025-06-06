@@ -2645,12 +2645,16 @@ static inline void report_error(Thread* t, DWORD exception_code,
 //-----------------------------------------------------------------------------
 JNIEXPORT
 LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
-  log_info(os)("Entering topLevelExceptionFilter");
+  if (LogInTopLevelExceptionFilter) {
+    log_info(os)("Entering topLevelExceptionFilter");
+  }
   PreserveLastError ple;
   if (InterceptOSException) return EXCEPTION_CONTINUE_SEARCH;
   PEXCEPTION_RECORD exception_record = exceptionInfo->ExceptionRecord;
   DWORD exception_code = exception_record->ExceptionCode;
-  log_info(os)("exception_code in topLevelExceptionFilter: %d", exception_code);
+  if (LogInTopLevelExceptionFilter) {
+    log_info(os)("exception_code in topLevelExceptionFilter: %d", exception_code);
+  }
 #if defined(_M_ARM64)
   address pc = (address) exceptionInfo->ContextRecord->Pc;
 #elif defined(_M_AMD64)
@@ -2686,7 +2690,9 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 #endif
 
   if (t != nullptr && t->is_Java_thread()) {
-    log_info(os)("topLevelExceptionFilter handling Java thread");
+    if (LogInTopLevelExceptionFilter) {
+      log_info(os)("topLevelExceptionFilter handling Java thread");
+    }
     JavaThread* thread = JavaThread::cast(t);
     bool in_java = thread->thread_state() == _thread_in_Java;
     bool in_native = thread->thread_state() == _thread_in_native;
@@ -2723,9 +2729,13 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
         return EXCEPTION_CONTINUE_SEARCH;
       }
     } else if (exception_code == EXCEPTION_ACCESS_VIOLATION) {
-      log_info(os)("topLevelExceptionFilter handling EXCEPTION_ACCESS_VIOLATION");
+      if (LogInTopLevelExceptionFilter) {
+        log_info(os)("topLevelExceptionFilter handling EXCEPTION_ACCESS_VIOLATION");
+      }
       if (in_java) {
-        log_info(os)("topLevelExceptionFilter handling EXCEPTION_ACCESS_VIOLATION in_java");
+        if (LogInTopLevelExceptionFilter) {
+          log_info(os)("topLevelExceptionFilter handling EXCEPTION_ACCESS_VIOLATION in_java");
+        }
         // Either stack overflow or null pointer exception.
         address addr = (address) exception_record->ExceptionInformation[1];
         address stack_end = thread->stack_end();
@@ -2769,17 +2779,23 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
       // in and the heap gets shrunk before the field access.
       address slowcase_pc = JNI_FastGetField::find_slowcase_pc(pc);
       if (slowcase_pc != (address)-1) {
-        log_info(os)("topLevelExceptionFilter doing Handle_Exception");
+        if (LogInTopLevelExceptionFilter) {
+          log_info(os)("topLevelExceptionFilter doing Handle_Exception");
+        }
         return Handle_Exception(exceptionInfo, slowcase_pc);
       }
 
       // Stack overflow or null pointer exception in native code.
 //#if !defined(USE_VECTORED_EXCEPTION_HANDLING)
+      if (LogInTopLevelExceptionFilter) {
         log_info(os)("topLevelExceptionFilter calling report_error for !defined(USE_VECTORED_EXCEPTION_HANDLING) case");
+      }
         report_error(t, exception_code, pc, exception_record,
                    exceptionInfo->ContextRecord);
 //#endif
-      log_info(os)("topLevelExceptionFilter returning EXCEPTION_CONTINUE_SEARCH on line %d", __LINE__);
+      if (LogInTopLevelExceptionFilter) {
+        log_info(os)("topLevelExceptionFilter returning EXCEPTION_CONTINUE_SEARCH on line %d", __LINE__);
+      }
       return EXCEPTION_CONTINUE_SEARCH;
     } // /EXCEPTION_ACCESS_VIOLATION
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2856,12 +2872,16 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 
 #if !defined(USE_VECTORED_EXCEPTION_HANDLING)
   if (exception_code != EXCEPTION_BREAKPOINT) {
-    log_info(os)("topLevelExceptionFilter reporting error near end of method");
+    if (LogInTopLevelExceptionFilter) {
+      log_info(os)("topLevelExceptionFilter reporting error near end of method");
+    }
     report_error(t, exception_code, pc, exception_record,
                  exceptionInfo->ContextRecord);
   }
 #endif
-  log_info(os)("Leaving topLevelExceptionFilter");
+  if (LogInTopLevelExceptionFilter) {
+    log_info(os)("Leaving topLevelExceptionFilter");
+  }
 
   return EXCEPTION_CONTINUE_SEARCH;
 }

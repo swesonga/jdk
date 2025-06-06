@@ -2030,6 +2030,9 @@ const int ObjectAlignmentInBytes = 8;
   product(bool, LogInExceptionWrapper, false,                               \
           "Log progress in the os_exception_wrapper method")                \
                                                                             \
+  product(bool, LogInTopLevelExceptionFilter, false,                        \
+          "Log progress in topLevelExceptionFilter")                        \
+                                                                            \
   product(bool, LogInVectoredExceptionHandler, false,                       \
           "Log progress in the VEH")                                        \
                                                                             \
