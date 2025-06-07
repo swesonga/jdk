@@ -89,7 +89,7 @@ class ZeroStack {
   }
 
   void *alloc(size_t size) {
-    int count = align_up(size, wordSize) >> LogBytesPerWord;
+    int count = (int)align_up(size, wordSize) >> LogBytesPerWord; // warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss 
     assert(count <= available_words(), "stack overflow");
     return _sp -= count;
   }

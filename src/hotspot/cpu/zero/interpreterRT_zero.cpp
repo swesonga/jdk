@@ -158,9 +158,9 @@ JRT_ENTRY(address,
                                                      intptr_t*   unused2))
   ZeroStack *stack = current->zero_stack();
 
-  int required_words =
-    (align_up(sizeof(ffi_cif), wordSize) >> LogBytesPerWord) +
-    (method->is_static() ? 2 : 1) + method->size_of_parameters() + 1;
+  int required_words =// warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+    (int)(align_up(sizeof(ffi_cif), wordSize) >> LogBytesPerWord) +
+    (method->is_static() ? 2 : 1) + (int)method->size_of_parameters() + 1;
 
   stack->overflow_check(required_words, CHECK_NULL);
 

@@ -33,7 +33,7 @@
 // Inlined causes circular inclusion with thread.hpp
 ZeroStack::ZeroStack()
     : _base(nullptr), _top(nullptr), _sp(nullptr) {
-    _shadow_pages_size = StackOverflow::stack_shadow_zone_size();
+    _shadow_pages_size = (int)StackOverflow::stack_shadow_zone_size(); // warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
   }
 
 int ZeroStack::suggest_size(Thread *thread) const {

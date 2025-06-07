@@ -48,10 +48,10 @@ inline void ZeroStack::overflow_check(int required_words, TRAPS) {
 // value can be negative.
 inline int ZeroStack::abi_stack_available(Thread *thread) const {
   assert(Thread::current() == thread, "should run in the same thread");
-  int stack_used = thread->stack_base() - (address) &stack_used
+  size_t stack_used = thread->stack_base() - (address) &stack_used // warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
     + (StackOverflow::stack_guard_zone_size() + StackOverflow::stack_shadow_zone_size());
-  int stack_free = thread->stack_size() - stack_used;
-  return stack_free;
+  size_t stack_free = thread->stack_size() - stack_used; // warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  return (int)stack_free;
 }
 
 #endif // CPU_ZERO_STACK_ZERO_INLINE_HPP

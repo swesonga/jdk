@@ -76,7 +76,10 @@ RegisterMap::RegisterMap(JavaThread *thread, UpdateMap update_map, ProcessFrames
   _chunk_index = -1;
 
 #ifndef PRODUCT
+#ifndef ZERO
+// error C2065: '_location': undeclared identifier
   for (int i = 0; i < reg_count ; i++ ) _location[i] = nullptr;
+#endif /* ZERO */
 #endif /* PRODUCT */
 }
 
@@ -94,7 +97,10 @@ RegisterMap::RegisterMap(oop continuation, UpdateMap update_map) {
   _chunk_index = -1;
 
 #ifndef PRODUCT
+#ifndef ZERO
+// error C2065: '_location': undeclared identifier
   for (int i = 0; i < reg_count ; i++ ) _location[i] = nullptr;
+#endif /* ZERO */
 #endif /* PRODUCT */
 }
 

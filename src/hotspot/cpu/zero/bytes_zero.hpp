@@ -28,7 +28,8 @@
 
 #include "memory/allStatic.hpp"
 
-typedef union [[gnu::packed]] unaligned {
+typedef union // [[gnu::packed]] // warning C5030: attribute [[gnu::packed]] is not recognized
+unaligned {
   u4 u;
   u2 us;
   u8 ul;
