@@ -80,12 +80,21 @@ bool os::win32::platform_print_native_stack(outputStream* st, const void* contex
 
   STACKFRAME stk;
   memset(&stk, 0, sizeof(stk));
+#ifdef _M_ARM64
+  stk.AddrStack.Offset    = ctx.Sp;
+  stk.AddrStack.Mode      = AddrModeFlat;
+  stk.AddrFrame.Offset    = ctx.Fp;
+  stk.AddrFrame.Mode      = AddrModeFlat;
+  stk.AddrPC.Offset       = ctx.Pc;
+  stk.AddrPC.Mode         = AddrModeFlat;
+#else
   stk.AddrStack.Offset    = ctx.Rsp;
   stk.AddrStack.Mode      = AddrModeFlat;
   stk.AddrFrame.Offset    = ctx.Rbp;
   stk.AddrFrame.Mode      = AddrModeFlat;
   stk.AddrPC.Offset       = ctx.Rip;
   stk.AddrPC.Mode         = AddrModeFlat;
+#endif
 
   // Ensure we consider dynamically loaded dll's
   SymbolEngine::refreshModuleList();
