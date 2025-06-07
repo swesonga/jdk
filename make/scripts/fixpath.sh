@@ -483,7 +483,12 @@ function exec_command_line() {
   fi
 
   if [[ $ENVROOT != "" || ! -x /bin/grep ]]; then
-    "$command" "${collected_args[@]}"
+    if [[ $command == *"cl.exe" ]]; then
+      command=$(echo "$command" | tr '\\' '/')
+      "$command" "${collected_args[@]}"
+    else
+      "$command" "${collected_args[@]}"
+    fi
   else
     # For WSL1, automatically strip away warnings from WSLENV=PATH/l
     "$command" "${collected_args[@]}" 2> >(/bin/grep -v "ERROR: UtilTranslatePathList" 1>&2)
