@@ -89,6 +89,6 @@
 #define DLL_ERROR1      "Error: dl failure on line %d"
 #define DLL_ERROR2      "Error: failed %s, because %s"
 #define DLL_ERROR3      "Error: could not find executable %s"
-#define DLL_ERROR4      "Error: Failed to load %s"
+#define DLL_ERROR4      "Error: Failed to load %s. GetLastError(): %d"
 
 #endif /* _EMESSAGES_H */

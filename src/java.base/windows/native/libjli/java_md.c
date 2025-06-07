@@ -382,7 +382,7 @@ LoadJavaVM(const char *jvmpath, InvocationFunctions *ifn)
     } else {
         /* Load the Java VM DLL */
         if ((handle = LoadLibrary(jvmpath)) == 0) {
-            JLI_ReportErrorMessage(DLL_ERROR4, (char *)jvmpath);
+            JLI_ReportErrorMessage(DLL_ERROR4, (char *)jvmpath, GetLastError());
             return JNI_FALSE;
         }
     }
