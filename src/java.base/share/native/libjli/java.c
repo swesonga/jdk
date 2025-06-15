@@ -47,7 +47,6 @@
 
 
 #include <assert.h>
-#include <stdio.h>
 
 #include "java.h"
 #include "jni.h"
@@ -70,13 +69,6 @@ enum HelpKind {
     HELP_FULL,
     HELP_EXTRA
 };
-
-static volatile int crash_location = -1;
-
-static void crash(int flag) {
-  printf("crash_location: %d\n", flag);
-  *((volatile int*)0) = 0x1234;
-}
 
 static jboolean printVersion = JNI_FALSE; /* print and exit */
 static jboolean showVersion = JNI_FALSE;  /* print but continue */
@@ -253,48 +245,6 @@ JLI_Launch(int argc, char ** argv,              /* main argc, argv */
     char jdkroot[MAXPATHLEN];
     char jvmcfg[MAXPATHLEN];
 
-    if (argc > 1) {
-      if (strcmp(argv[1], "-XX:+CrashAtLocation0") == 0) {
-        crash_location = 0;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation3") == 0) {
-        crash_location = 3;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation4") == 0) {
-        crash_location = 4;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation5") == 0) {
-        crash_location = 5;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation6") == 0) {
-        crash_location = 6;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation7") == 0) {
-        crash_location = 7;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation8") == 0) {
-        crash_location = 8;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation9") == 0) {
-        crash_location = 9;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation10") == 0) {
-        crash_location = 10;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation11") == 0) {
-        crash_location = 11;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation12") == 0) {
-        crash_location = 12;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation13") == 0) {
-        crash_location = 13;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation14") == 0) {
-        crash_location = 14;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation15") == 0) {
-        crash_location = 15;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation16") == 0) {
-        crash_location = 16;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation17") == 0) {
-        crash_location = 17;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation18") == 0) {
-        crash_location = 18;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation19") == 0) {
-        crash_location = 19;
-      } else if (strcmp(argv[1], "-XX:+CrashAtLocation20") == 0) {
-        crash_location = 20;
-      }
-    }
-
     _fVersion = fullversion;
     _launcher_name = lname;
     _program_name = pname;
@@ -439,13 +389,7 @@ invokeStaticMainWithArgs(JNIEnv *env, jclass mainClass, jobjectArray mainArgs) {
         // static main(String[]) not found
         return 0;
     }
-    if (crash_location == 2) {
-        crash(crash_location);
-    }
     (*env)->CallStaticVoidMethod(env, mainClass, mainID, mainArgs);
-    if (crash_location == 3) {
-        crash(crash_location);
-    }
     return 1; // method was invoked
 }
 
@@ -547,11 +491,6 @@ JavaMain(void* _args)
 
     /* Initialize the virtual machine */
     start = CurrentTimeMicros();
-
-    if (crash_location == 0) {
-        crash(crash_location);
-    }
-
     if (!InitializeJVM(&vm, &env, &ifn)) {
         JLI_ReportErrorMessage(JVM_ERROR1);
         exit(1);
@@ -652,7 +591,6 @@ JavaMain(void* _args)
      */
     mainClass = LoadMainClass(env, mode, what);
     CHECK_EXCEPTION_NULL_LEAVE(mainClass);
-
     /*
      * In some cases when launching an application that needs a helper, e.g., a
      * JavaFX application with no main method, the mainClass will not be the
@@ -694,10 +632,6 @@ JavaMain(void* _args)
     noArgMainField = (*env)->GetStaticFieldID(env, helperClass, "noArgMain", "Z");
     CHECK_EXCEPTION_NULL_LEAVE(noArgMainField);
     noArgMain = (*env)->GetStaticBooleanField(env, helperClass, noArgMainField);
-
-    if (crash_location == 1) {
-        crash(crash_location);
-    }
 
     if (isStaticMain) {
         if (noArgMain) {

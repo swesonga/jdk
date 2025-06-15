@@ -81,8 +81,6 @@
 #include <signal.h>
 #endif // PRODUCT
 
-// #include <Windows.h>
-
 bool              VMError::coredump_status;
 char              VMError::coredump_message[O_BUFLEN];
 int               VMError::_current_step;
@@ -605,10 +603,8 @@ void VMError::clear_step_start_time() {
 // segment.
 void VMError::report(outputStream* st, bool _verbose) {
   // Used by reattempt step logic
-  log_info(os)("Entering VMError::report");
   static int continuation = 0;
   const char* stop_reattempt_reason = nullptr;
-  // DebugBreak();
 # define BEGIN                                             \
   if (_current_step == 0) {                                \
     _step_did_succeed = false;                             \
@@ -1322,7 +1318,6 @@ void VMError::report(outputStream* st, bool _verbose) {
 # undef STEP
 # undef REATTEMPT_STEP_IF
 # undef END
-  log_info(os)("Leaving VMError::report");
 }
 
 // Report for the vm_info_cmd. This prints out the information above omitting

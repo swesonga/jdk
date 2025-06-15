@@ -610,7 +610,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   }
 
   status = init_globals2();
-
   if (status != JNI_OK) {
     Threads::remove(main_thread, false);
     // It is possible that we managed to fully initialize Universe but have then

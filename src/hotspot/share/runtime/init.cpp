@@ -121,20 +121,16 @@ jint init_globals() {
   }
 #endif
   bytecodes_init();
-
   classLoader_init1();
-
   compilationPolicy_init();
   codeCache_init();
   VM_Version_init();              // depends on codeCache_init for emitting code
   // stub routines in initial blob are referenced by later generated code
   initial_stubs_init();
-
   // stack overflow exception blob is referenced by the interpreter
   SharedRuntime::generate_initial_stubs();
   jint status = universe_init();  // dependent on codeCache_init and
                                   // initial_stubs_init and metaspace_init.
-
   if (status != JNI_OK)
     return status;
 
@@ -148,22 +144,16 @@ jint init_globals() {
 
   AsyncLogWriter::initialize();
   gc_barrier_stubs_init();   // depends on universe_init, must be before interpreter_init
-
   continuations_init();      // must precede continuation stub generation
   continuation_stubs_init(); // depends on continuations_init
-
 #if INCLUDE_JFR
   SharedRuntime::generate_jfr_stubs();
 #endif
   interpreter_init_stub();   // before methods get loaded
   accessFlags_init();
-
   InterfaceSupport_init();
-
   VMRegImpl::set_regName();  // need this before generate_stubs (for printing oop maps).
-
   SharedRuntime::generate_stubs();
-
   return JNI_OK;
 }
 
