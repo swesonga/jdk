@@ -36,24 +36,24 @@
 // SafeFetch32 and SafeFetchN are implemented via static assembly
 // and live in os_cpu/xx_xx/safefetch_xx_xx.S
 
-extern "C" char _SafeFetch32_continuation[] __attribute__ ((visibility ("hidden")));
-extern "C" char _SafeFetch32_fault[] __attribute__ ((visibility ("hidden")));
+extern "C" char _SafeFetch32_continuation[];
+extern "C" char _SafeFetch32_fault[];
 
 #ifdef _LP64
-extern "C" char _SafeFetchN_continuation[] __attribute__ ((visibility ("hidden")));
-extern "C" char _SafeFetchN_fault[] __attribute__ ((visibility ("hidden")));
+extern "C" char _SafeFetchN_continuation[];
+extern "C" char _SafeFetchN_fault[];
 #endif // _LP64
 
-bool handle_safefetch(int sig, address pc, void* context) {
-  ucontext_t* uc = (ucontext_t*)context;
-  if ((sig == SIGSEGV || sig == SIGBUS) && uc != nullptr) {
+bool handle_safefetch(int exception_code, address pc, void* context) {
+  CONTEXT* ctx = (CONTEXT*)context;
+  if (exception_code == EXCEPTION_ACCESS_VIOLATION && ctx != nullptr) {
     if (pc == (address)_SafeFetch32_fault) {
-      os::Posix::ucontext_set_pc(uc, (address)_SafeFetch32_continuation);
+      os::win32::context_set_pc(ctx, (address)_SafeFetch32_continuation);
       return true;
     }
 #ifdef _LP64
     if (pc == (address)_SafeFetchN_fault) {
-      os::Posix::ucontext_set_pc(uc, (address)_SafeFetchN_continuation);
+      os::win32::context_set_pc(ctx, (address)_SafeFetchN_continuation);
       return true;
     }
 #endif
