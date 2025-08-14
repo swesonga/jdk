@@ -28,20 +28,17 @@
     ;  w1 : defaultval
 
     ; needed to align function start to 4 byte
-    ALIGN  6
-    .text
-    .global SafeFetch32_impl
-    .type SafeFetch32_impl, %function
+    ALIGN  4
+    EXPORT _SafeFetch32_fault
+    EXPORT _SafeFetch32_continuation
+    EXPORT SafeFetch32_impl
 
-SafeFetch32_impl:
-_SafeFetch32_fault:
+SafeFetch32_impl
+_SafeFetch32_fault
     ldr w0, [x0]
     ret
 
-    .text
-    .global _SafeFetch32_continuation
-    .type _SafeFetch32_continuation, %function
-_SafeFetch32_continuation:
+_SafeFetch32_continuation
     mov      x0, x1
     ret
 
@@ -50,23 +47,18 @@ _SafeFetch32_continuation:
     ;  x1 : address
     ;  x0 : defaultval
 
-    ALIGN  6
+    ALIGN  4
+    EXPORT _SafeFetchN_fault
+    EXPORT _SafeFetchN_continuation
+    EXPORT SafeFetchN_impl
 
-    .text
-    .global SafeFetchN_impl
-    .type SafeFetchN_impl, %function
-SafeFetchN_impl:
-
-    .text
-    .global _SafeFetchN_fault
-    .type _SafeFetchN_fault, %function
-_SafeFetchN_fault:
+SafeFetchN_impl
+_SafeFetchN_fault
     ldr      x0, [x0]
     ret
 
-    .text
-    .global _SafeFetchN_continuation
-    .type _SafeFetchN_continuation, %function
-_SafeFetchN_continuation:
+_SafeFetchN_continuation
     mov      x0, x1
     ret
+
+    END
