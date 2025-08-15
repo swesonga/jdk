@@ -32,6 +32,7 @@
     EXPORT _SafeFetch32_fault
     EXPORT _SafeFetch32_continuation
     EXPORT SafeFetch32_impl
+    AREA safefetch_text, CODE
 
 SafeFetch32_impl
 _SafeFetch32_fault
