@@ -659,8 +659,7 @@ AC_DEFUN_ONCE([TOOLCHAIN_DETECT_TOOLCHAIN_CORE],
       # On 64 bit windows, the assembler is "ml64.exe"
       UTIL_LOOKUP_TOOLCHAIN_PROGS(AS, ml64)
     else
-      # otherwise, the assembler is "ml.exe"
-      UTIL_LOOKUP_TOOLCHAIN_PROGS(AS, ml)
+      AC_MSG_ERROR([32-bit x86 builds are not supported])
     fi
   fi
   AC_SUBST(AS)
