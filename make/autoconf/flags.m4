@@ -320,7 +320,7 @@ AC_DEFUN([FLAGS_SETUP_TOOLCHAIN_CONTROL],
 [
   if test "x$TOOLCHAIN_TYPE" = xmicrosoft; then
     CC_OUT_OPTION=-Fo
-    if test "x$OPENJDK_TARGET_CPU" = xx86_64; then
+    if test "x$OPENJDK_TARGET_CPU" != xaarch64; then
       AS_NON_ASM_EXTENSION_OPTION=-Ta
     fi
   else
