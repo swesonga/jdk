@@ -6278,7 +6278,6 @@ const void* os::get_saved_assert_context(const void** sigInfo) {
   return nullptr;
 }
 
-#ifdef HAVE_PLATFORM_PRINT_NATIVE_STACK
 /*
  * Windows/x64 does not use stack frames the way expected by Java:
  * [1] in most cases, there is no frame pointer. All locals are addressed via RSP
@@ -6380,4 +6379,3 @@ bool os::win32::platform_print_native_stack(outputStream* st, const void* contex
 
   return true;
 }
-#endif // HAVE_PLATFORM_PRINT_NATIVE_STACK
