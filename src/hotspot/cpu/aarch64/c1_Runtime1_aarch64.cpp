@@ -310,7 +310,7 @@ static void restore_live_registers(StubAssembler* sasm, bool restore_fpu_registe
     __ add(sp, sp, 32 * wordSize);
   }
 
-#ifdef _WINDOWS
+#ifdef R18_RESERVED
   /*
   Do not modify r18_tls when restoring registers on Windows as it is used to
   store the pointer to the current thread's TEB (where TLS variables are stored).
@@ -334,7 +334,7 @@ static void restore_live_registers_except_r0(StubAssembler* sasm, bool restore_f
     __ add(sp, sp, 32 * wordSize);
   }
 
-#ifdef _WINDOWS
+#ifdef R18_RESERVED
   /*
   Do not modify r18_tls when restoring registers on Windows as it is used to
   store the pointer to the current thread's TEB (where TLS variables are stored).
