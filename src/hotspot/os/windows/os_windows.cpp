@@ -2816,6 +2816,10 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
                         (exception_code != EXCEPTION_UNCAUGHT_CXX_EXCEPTION);
 #endif
 
+  if (exception_code == EXCEPTION_GUARD_PAGE && IgnoreExceptionGuardPage) {
+    should_report_error = false;
+  }
+
   if (should_report_error) {
     report_error(t, exception_code, pc, exception_record,
                  exceptionInfo->ContextRecord);
