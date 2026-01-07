@@ -43,7 +43,10 @@ product(bool, EnableAllLargePageSizesForWindows, false,                   \
         "Windows Server")                                                 \
                                                                           \
 product(bool, UseOSErrorReporting, false,                                 \
-        "Let VM fatal error propagate to the OS (ie. WER on Windows)")
+        "Let VM fatal error propagate to the OS (ie. WER on Windows)")    \
+                                                                          \
+product(bool, EnableSpinPause, false,                                     \
+        "Enable SpinPause on Windows")                                    \
 
 // end of RUNTIME_OS_FLAGS
 
