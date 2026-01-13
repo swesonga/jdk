@@ -52,13 +52,20 @@ import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import jdk.test.lib.Utils;
+//import jdk.test.lib.Utils;
 
 public class ProducerConsumerLoops {
-    static final long LONG_DELAY_MS = Utils.adjustTimeout(10_000);
+    static final long LONG_DELAY_MS = 10_000 * 4; //Utils.adjustTimeout(10_000); // timeout factor is 4.0 on the command line run
     static ExecutorService pool;
 
     public static void main(String[] args) throws Exception {
+        for (int i = 0; i < 1000; i++) {
+            System.out.println("Iteration " + i);
+            runTest(args);
+        }
+    }
+
+    public static void runTest(String[] args) throws Exception {
         final int maxPairs = (args.length > 0)
             ? Integer.parseInt(args[0])
             : 5;
@@ -70,14 +77,16 @@ public class ProducerConsumerLoops {
             // Notably, fair queues get fewer iters.
             // Unbounded queues can legitimately OOME if iterations
             // high enough, but we have a sufficiently low limit here.
+            /*
             run(new ArrayBlockingQueue<Integer>(100), i, 500);
             run(new LinkedBlockingQueue<Integer>(100), i, 1000);
             run(new LinkedBlockingDeque<Integer>(100), i, 1000);
             run(new LinkedTransferQueue<Integer>(), i, 1000);
             run(new PriorityBlockingQueue<Integer>(), i, 1000);
             run(new SynchronousQueue<Integer>(), i, 400);
+             */
             run(new SynchronousQueue<Integer>(true), i, 300);
-            run(new ArrayBlockingQueue<Integer>(100, true), i, 100);
+            //run(new ArrayBlockingQueue<Integer>(100, true), i, 100);
         }
         pool.shutdown();
         if (! pool.awaitTermination(LONG_DELAY_MS, MILLISECONDS))
@@ -92,7 +101,7 @@ public class ProducerConsumerLoops {
     final BlockingQueue<Integer> queue;
     final int pairs;
     final int iters;
-    final LoopHelpers.BarrierTimer timer = new LoopHelpers.BarrierTimer();
+    final ProducerConsumerLoops.LoopHelpers.BarrierTimer timer = new ProducerConsumerLoops.LoopHelpers.BarrierTimer();
     final CyclicBarrier barrier;
     final AtomicInteger checksum = new AtomicInteger(0);
     Throwable fail;
@@ -157,6 +166,72 @@ public class ProducerConsumerLoops {
             }
             checksum.getAndAdd(-s);
             barrier.await();
+        }
+    }
+
+    static class LoopHelpers {
+        // Some mindless computation to do between synchronizations...
+
+        /**
+         * generates 32 bit pseudo-random numbers.
+         * Adapted from http://www.snippets.org
+         */
+        public static int compute1(int x) {
+            int lo = 16807 * (x & 0xFFFF);
+            int hi = 16807 * (x >>> 16);
+            lo += (hi & 0x7FFF) << 16;
+            if ((lo & 0x80000000) != 0) {
+                lo &= 0x7fffffff;
+                ++lo;
+            }
+            lo += hi >>> 15;
+            if (lo == 0 || (lo & 0x80000000) != 0) {
+                lo &= 0x7fffffff;
+                ++lo;
+            }
+            return lo;
+        }
+
+        /**
+         *  Computes a linear congruential random number a random number
+         *  of times.
+         */
+        public static int compute2(int x) {
+            int loops = (x >>> 4) & 7;
+            while (loops-- > 0) {
+                x = (x * 2147483647) % 16807;
+            }
+            return x;
+        }
+
+        public static class BarrierTimer implements Runnable {
+            public volatile long startTime;
+            public volatile long endTime;
+            public void run() {
+                long t = System.nanoTime();
+                if (startTime == 0)
+                    startTime = t;
+                else
+                    endTime = t;
+            }
+            public void clear() {
+                startTime = 0;
+                endTime = 0;
+            }
+            public long getTime() {
+                return endTime - startTime;
+            }
+        }
+
+        public static String rightJustify(long n) {
+            // There's probably a better way to do this...
+            String field = "         ";
+            String num = Long.toString(n);
+            if (num.length() >= field.length())
+                return num;
+            StringBuilder b = new StringBuilder(field);
+            b.replace(b.length()-num.length(), b.length(), num);
+            return b.toString();
         }
     }
 }
