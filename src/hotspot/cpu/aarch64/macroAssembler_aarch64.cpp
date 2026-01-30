@@ -27,6 +27,7 @@
 #include "asm/assembler.inline.hpp"
 #include "ci/ciEnv.hpp"
 #include "code/compiledIC.hpp"
+#include "code/codeCache.hpp"
 #include "compiler/compileTask.hpp"
 #include "compiler/disassembler.hpp"
 #include "compiler/oopMap.hpp"
@@ -904,6 +905,32 @@ address MacroAssembler::emit_trampoline_stub(int insts_call_instruction_offset,
   address stub = start_a_stub(max_trampoline_stub_size());
   if (stub == nullptr) {
     return nullptr;  // CodeBuffer::expand failed
+  }
+
+  // Diagnostic: detect TestTrampoline compilation and log trampoline generation
+  bool is_test_trampoline = false;
+  if (Thread::current()->is_Compiler_thread()) {
+    ciEnv* env = ciEnv::current();
+    if (env != nullptr) {
+      CompileTask* task = env->task();
+      if (task != nullptr && task->method() != nullptr) {
+        const char* klass_name = "UNKNOWN"; // task->method()->holder()->name()->as_utf8();
+        const char* method_name = task->method()->name()->as_utf8();
+        if (strcmp(method_name, "test") == 0) {
+          is_test_trampoline = true;
+          address call_site = code()->insts()->start() + insts_call_instruction_offset;
+          tty->print_cr("DEBUG: emit_trampoline_stub for %s::%s", klass_name, method_name);
+          tty->print_cr("  call_site=" INTPTR_FORMAT " dest=" INTPTR_FORMAT " distance=" INTPTR_FORMAT,
+                        p2i(call_site), p2i(dest), p2i((void*)(intptr_t)(dest - call_site)));
+          tty->print_cr("  CodeCache: low=" INTPTR_FORMAT " high=" INTPTR_FORMAT,
+                        p2i(CodeCache::low_bound()), p2i(CodeCache::high_bound()));
+          // Add 3 DMB instructions for debugging memory ordering
+          dmb(Assembler::ISH);
+          dmb(Assembler::ISH);
+          dmb(Assembler::ISH);
+        }
+      }
+    }
   }
 
   // Create a trampoline stub relocation which relates this trampoline stub
