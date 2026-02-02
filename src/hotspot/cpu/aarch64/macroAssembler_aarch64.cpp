@@ -862,6 +862,22 @@ address MacroAssembler::trampoline_call(Address entry) {
 
   address target = entry.target();
 
+  bool is_test_trampoline = false;
+  if (Thread::current()->is_Compiler_thread()) {
+    ciEnv* env = ciEnv::current();
+    if (env != nullptr) {
+      CompileTask* task = env->task();
+      if (task != nullptr && task->method() != nullptr) {
+        const char* external_name = task->method()->external_name();
+        const char* method_name = task->method()->name()->as_utf8();
+        if (strcmp(method_name, "test") == 0) {
+          is_test_trampoline = true;
+          dmb(Assembler::OSH);
+        }
+      }
+    }
+  }
+
   if (!is_always_within_branch_range(entry)) {
     if (!in_scratch_emit_size()) {
       // We don't want to emit a trampoline if C2 is generating dummy
