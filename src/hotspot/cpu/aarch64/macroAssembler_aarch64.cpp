@@ -872,7 +872,6 @@ address MacroAssembler::trampoline_call(Address entry) {
         const char* method_name = task->method()->name()->as_utf8();
         if (strcmp(method_name, "test") == 0) {
           is_test_trampoline = true;
-          dmb(Assembler::OSH);
         }
       }
     }
@@ -940,10 +939,6 @@ address MacroAssembler::emit_trampoline_stub(int insts_call_instruction_offset,
                         p2i(call_site), p2i(dest), p2i((void*)(intptr_t)(dest - call_site)));
           tty->print_cr("  CodeCache: low=" INTPTR_FORMAT " high=" INTPTR_FORMAT,
                         p2i(CodeCache::low_bound()), p2i(CodeCache::high_bound()));
-          // Add 3 DMB instructions for debugging memory ordering
-          dmb(Assembler::ISH);
-          dmb(Assembler::ISH);
-          dmb(Assembler::ISH);
         }
       }
     }
