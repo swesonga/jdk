@@ -744,6 +744,14 @@ static void pass_arg3(MacroAssembler* masm, Register arg) {
   }
 }
 
+bool MacroAssembler::codestub_branch_needs_far_jump() {
+  if (AOTCodeCache::is_on_for_dump()) {
+    // To calculate far_codestub_branch_size correctly.
+    return true;
+  }
+  return CodeCache::max_distance_to_non_nmethod() > branch_range;
+}
+
 void MacroAssembler::call_VM_base(Register oop_result,
                                   Register java_thread,
                                   Register last_java_sp,

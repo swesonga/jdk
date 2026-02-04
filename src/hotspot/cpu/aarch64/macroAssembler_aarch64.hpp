@@ -1323,13 +1323,7 @@ public:
   }
 
   // Check if branches to the non nmethod section require a far jump
-  static bool codestub_branch_needs_far_jump() {
-    if (AOTCodeCache::is_on_for_dump()) {
-      // To calculate far_codestub_branch_size correctly.
-      return true;
-    }
-    return CodeCache::max_distance_to_non_nmethod() > branch_range;
-  }
+  static bool codestub_branch_needs_far_jump();
 
   // Emit a direct call/jump if the entry address will always be in range,
   // otherwise a far call/jump.
