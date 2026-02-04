@@ -749,6 +749,22 @@ bool MacroAssembler::codestub_branch_needs_far_jump() {
     // To calculate far_codestub_branch_size correctly.
     return true;
   }
+
+  bool is_test_trampoline = false;
+  if (Thread::current()->is_Compiler_thread()) {
+    ciEnv* env = ciEnv::current();
+    if (env != nullptr) {
+      CompileTask* task = env->task();
+      if (task != nullptr && task->method() != nullptr) {
+        const char* external_name = task->method()->external_name();
+        const char* method_name = task->method()->name()->as_utf8();
+        if (strcmp(method_name, "test") == 0) {
+          is_test_trampoline = true;
+        }
+      }
+    }
+  }
+
   return CodeCache::max_distance_to_non_nmethod() > branch_range;
 }
 
@@ -828,6 +844,21 @@ void MacroAssembler::call_VM_helper(Register oop_result, address entry_point, in
 
 // Check the entry target is always reachable from any branch.
 static bool is_always_within_branch_range(Address entry) {
+  bool is_test_trampoline = false;
+  if (Thread::current()->is_Compiler_thread()) {
+    ciEnv* env = ciEnv::current();
+    if (env != nullptr) {
+      CompileTask* task = env->task();
+      if (task != nullptr && task->method() != nullptr) {
+        const char* external_name = task->method()->external_name();
+        const char* method_name = task->method()->name()->as_utf8();
+        if (strcmp(method_name, "test") == 0) {
+          is_test_trampoline = true;
+        }
+      }
+    }
+  }
+
   if (AOTCodeCache::is_on_for_dump()) {
     return false;
   }
