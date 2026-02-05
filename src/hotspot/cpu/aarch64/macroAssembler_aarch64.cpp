@@ -750,6 +750,7 @@ bool MacroAssembler::codestub_branch_needs_far_jump() {
     return true;
   }
 
+  size_t max_distance_to_non_nmethod = CodeCache::max_distance_to_non_nmethod();
   bool is_test_trampoline = false;
   if (Thread::current()->is_Compiler_thread()) {
     ciEnv* env = ciEnv::current();
@@ -765,7 +766,7 @@ bool MacroAssembler::codestub_branch_needs_far_jump() {
     }
   }
 
-  return CodeCache::max_distance_to_non_nmethod() > branch_range;
+  return max_distance_to_non_nmethod > branch_range;
 }
 
 void MacroAssembler::call_VM_base(Register oop_result,
