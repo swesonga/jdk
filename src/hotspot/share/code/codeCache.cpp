@@ -1056,7 +1056,10 @@ size_t CodeCache::max_distance_to_non_nmethod() {
     // in between MethodProfiled and MethodNonProfiled segments
     size_t dist1 = (size_t)blob->high() - (size_t)_low_bound;
     size_t dist2 = (size_t)_high_bound - (size_t)blob->low();
-    return dist1 > dist2 ? dist1 : dist2;
+    if (dist1 > dist2) {
+      return dist1;
+    }
+    return dist2;
   }
 }
 
