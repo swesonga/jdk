@@ -322,18 +322,24 @@ void CodeCache::initialize_heaps() {
     ReservedSpace profiled_space = rs.partition(offset, profiled.size);
     offset += profiled.size;
     // Tier 2 and tier 3 (profiled) methods
-    add_heap(profiled_space, "CodeHeap 'profiled nmethods'", CodeBlobType::MethodProfiled);
+    stringStream profiled_name;
+    profiled_name.print("CodeHeap 'profiled nmethods' (%zu)", profiled.size);
+    add_heap(profiled_space, profiled_name.as_string(), CodeBlobType::MethodProfiled);
   }
 
   ReservedSpace non_method_space = rs.partition(offset, non_nmethod.size);
   offset += non_nmethod.size;
   // Non-nmethods (stubs, adapters, ...)
-  add_heap(non_method_space, "CodeHeap 'non-nmethods'", CodeBlobType::NonNMethod);
+  stringStream non_nmethod_name;
+  non_nmethod_name.print("CodeHeap 'non-nmethods' (%zu)", non_nmethod.size);
+  add_heap(non_method_space, non_nmethod_name.as_string(), CodeBlobType::NonNMethod);
 
   if (non_profiled.enabled) {
     ReservedSpace non_profiled_space  = rs.partition(offset, non_profiled.size);
     // Tier 1 and tier 4 (non-profiled) methods and native methods
-    add_heap(non_profiled_space, "CodeHeap 'non-profiled nmethods'", CodeBlobType::MethodNonProfiled);
+    stringStream non_profiled_name;
+    non_profiled_name.print("CodeHeap 'non-profiled nmethods' (%zu)", non_profiled.size);
+    add_heap(non_profiled_space, non_profiled_name.as_string(), CodeBlobType::MethodNonProfiled);
   }
 }
 
