@@ -25,26 +25,16 @@
 public class TestTrampoline {
     private final static int ITERATIONS_TO_HEAT_LOOP = 20_000;
 
-    public static void main(String[] args) throws Exception {
-        for (int i = 0; i < args.length; i++) {
-            System.out.println("Argument " + i + ": " + args[i]);
-        }
-        String testClassName = TestTrampoline.Test.class.getName();
-        System.out.println("Wrong method executed. Expected to execute " + testClassName);
+    private static void test(String s, int i) {
+        if (s.charAt(i) > 128)
+            throw new RuntimeException();
     }
 
-    static class Test {
-        private static void test(String s, int i) {
-            if (s.charAt(i) > 128)
-                throw new RuntimeException();
+    public static void main(String[] args) {
+        String s = "Returns the char value at the specified index.";
+        for (int i = 0; i < ITERATIONS_TO_HEAT_LOOP; ++i) {
+            test(s, i % s.length());
         }
-
-        public static void main(String[] args) {
-            String s = "Returns the char value at the specified index.";
-            for (int i = 0; i < ITERATIONS_TO_HEAT_LOOP; ++i) {
-                test(s, i % s.length());
-            }
-            System.out.println("Inner class execution complete.");
-        }
+        System.out.println("Inner class execution complete.");
     }
 }
