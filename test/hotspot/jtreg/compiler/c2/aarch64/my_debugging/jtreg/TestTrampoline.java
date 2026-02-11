@@ -36,12 +36,11 @@ import jdk.test.lib.process.ProcessTools;
  * @library /test/lib
  *
  * @requires vm.flagless & os.arch=="aarch64" &
- *           vm.compiler2.enabled
+ *           vm.debug == false & vm.compiler2.enabled
  *
  * @run driver compiler.c2.aarch64.TestTrampoline
  */
 
-// Removed the vm.debug == false requirement to be able to test the generation of trampolines in debug mode.
 public class TestTrampoline {
     private final static int ITERATIONS_TO_HEAT_LOOP = 20_000;
 
@@ -87,7 +86,6 @@ public class TestTrampoline {
         if (match != null && skipTo(iter, "{trampoline_stub}") != null) {
             throw new RuntimeException("Found unexpected {trampoline_stub}");
         }
-        throw new RuntimeException("Test completed successfully");
     }
 
     static class Test {
