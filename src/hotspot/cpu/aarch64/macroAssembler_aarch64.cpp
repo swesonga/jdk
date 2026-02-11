@@ -969,12 +969,13 @@ address MacroAssembler::emit_trampoline_stub(int insts_call_instruction_offset,
     if (env != nullptr) {
       CompileTask* task = env->task();
       if (task != nullptr && task->method() != nullptr) {
-        const char* klass_name = "UNKNOWN"; // task->method()->holder()->name()->as_utf8();
+        // const char* klass_name = "UNKNOWN"; // task->method()->holder()->name()->as_utf8();
+        const char* external_name = task->method()->external_name();
         const char* method_name = task->method()->name()->as_utf8();
         if (strcmp(method_name, "test") == 0) {
           is_test_trampoline = true;
           address call_site = code()->insts()->start() + insts_call_instruction_offset;
-          tty->print_cr("DEBUG: emit_trampoline_stub for %s::%s", klass_name, method_name);
+          tty->print_cr("MY DEBUG INFO: emit_trampoline_stub for %s::%s", external_name, method_name);
           tty->print_cr("  call_site=" INTPTR_FORMAT " dest=" INTPTR_FORMAT " distance=" INTPTR_FORMAT,
                         p2i(call_site), p2i(dest), p2i((void*)(intptr_t)(dest - call_site)));
           tty->print_cr("  CodeCache: low=" INTPTR_FORMAT " high=" INTPTR_FORMAT,
