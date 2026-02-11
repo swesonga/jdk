@@ -24,6 +24,7 @@
 
 package compiler.c2.aarch64;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import jdk.test.lib.process.OutputAnalyzer;
@@ -96,6 +97,28 @@ public class TestTrampoline {
 
         public static void main(String[] args) {
             String s = "Returns the char value at the specified index.";
+
+            boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+            if (isWindows) {
+                /*
+                The UTF-16 path can be executed in the String.charAt method on Windows. However,
+                it may not execute often enough to cause it to be inlined by C2. When this
+                happens, C2 may not fully inline the String.charAt method, which can result in
+                in generation of trampolines for runtime calls in the String.charAt method.
+                Therefore, we execute the UTF-16 path in the String.charAt method in a loop
+                to ensure that it is executed enough times to be inlined by C2. This prevents
+                the generation of trampolines for runtime calls in String.charAt.
+                */
+                String jnuEncoding = System.getProperty("sun.jnu.encoding");
+                if (jnuEncoding != null && Charset.isSupported(jnuEncoding)) {
+                    byte[] bytes = s.getBytes(Charset.forName(jnuEncoding));
+
+                    for (int i = 0; i < ITERATIONS_TO_HEAT_LOOP; ++i) {
+                        String encoded = new String(bytes, Charset.forName(jnuEncoding));
+                    }
+                }
+            }
+
             for (int i = 0; i < ITERATIONS_TO_HEAT_LOOP; ++i) {
                 test(s, i % s.length());
             }
