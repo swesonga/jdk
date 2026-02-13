@@ -929,7 +929,8 @@ public:
   // architecture.  In debug mode we shrink it in order to test
   // trampolines, but not so small that branches in the interpreter
   // are out of range.
-  static const uint64_t branch_range = NOT_DEBUG(128 * M) DEBUG_ONLY(2 * M);
+  //static const uint64_t branch_range = NOT_DEBUG(128 * M) DEBUG_ONLY(2 * M);
+  static const uint64_t branch_range = NOT_DEBUG(128 * M) DEBUG_ONLY(128 * M);
 
   static bool reachable_from_branch_at(address branch, address target) {
     return g_uabs(target - branch) < branch_range;
