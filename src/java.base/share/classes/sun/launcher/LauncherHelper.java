@@ -54,6 +54,7 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -67,6 +68,7 @@ import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
@@ -854,6 +856,7 @@ public final class LauncherHelper {
             case LM_JAR:
                 try {
                     jarFile = new JarFile(what);
+                    verifyJar(what);
                     cn = getMainClassFromJar(jarFile);
                 } catch (IOException ioe) {
                     abort(ioe, "java.launcher.jar.error1", what);
@@ -903,6 +906,70 @@ public final class LauncherHelper {
             }
         }
         return mainClass;
+    }
+
+    /**
+     * Verifies the JAR file by invoking jarsigner's full verification logic
+     * via reflection. If the jdk.jartool module is not available, falls back
+     * to reading all JAR entries to trigger basic signature verification.
+     * If verification fails, the launch is aborted.
+     */
+    private static void verifyJar(String jarName) {
+        try {
+            // jarsigner's Main.verifyJar is in the jdk.jartool module,
+            // which is not required by java.base — use reflection.
+            Optional<Module> jartoolOpt =
+                ModuleLayer.boot().findModule("jdk.jartool");
+            if (jartoolOpt.isEmpty()) {
+                verifyJarBasic(jarName);
+                return;
+            }
+
+            Module base = LauncherHelper.class.getModule();
+            Module jartool = jartoolOpt.get();
+
+            // Establish read edge and open the package for deep reflection
+            Modules.addReads(base, jartool);
+            Modules.addOpens(jartool,
+                "sun.security.tools.jarsigner", base);
+
+            Class<?> mainClass = Class.forName(
+                "sun.security.tools.jarsigner.Main");
+            Object instance = mainClass.getDeclaredConstructor().newInstance();
+            Method verifyMethod = mainClass.getDeclaredMethod(
+                "verifyJar", String.class);
+            verifyMethod.setAccessible(true);
+            verifyMethod.invoke(instance, jarName);
+        } catch (InvocationTargetException ite) {
+            Throwable cause = ite.getCause();
+            abort(cause, "java.launcher.jar.error.verification", jarName);
+        } catch (ReflectiveOperationException e) {
+            // Reflection setup failed — fall back to basic verification
+            verifyJarBasic(jarName);
+        }
+    }
+
+    /**
+     * Basic JAR verification fallback: reads all entries to trigger
+     * signature verification by the JarFile implementation.
+     */
+    private static void verifyJarBasic(String jarName) {
+        byte[] buffer = new byte[8192];
+        try (JarFile jf = new JarFile(jarName, true)) {
+            Enumeration<JarEntry> entries = jf.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                try (java.io.InputStream is = jf.getInputStream(entry)) {
+                    while (is.read(buffer) != -1) {
+                        // read to trigger verification
+                    }
+                }
+            }
+        } catch (SecurityException se) {
+            abort(se, "java.launcher.jar.error.verification", jarName);
+        } catch (IOException ioe) {
+            abort(ioe, "java.launcher.jar.error1", jarName);
+        }
     }
 
     /*
