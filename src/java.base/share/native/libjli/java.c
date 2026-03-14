@@ -80,6 +80,7 @@ static jboolean showResolvedModules = JNI_FALSE;
 static jboolean listModules = JNI_FALSE;
 static char     *describeModule = NULL;
 static jboolean validateModules = JNI_FALSE;
+static jboolean enforceJarVerification = JNI_FALSE;
 
 static const char *_program_name;
 static const char *_launcher_name;
@@ -1220,6 +1221,8 @@ ParseArguments(int *pargc, char ***pargv,
         } else if (JLI_StrCmp(arg, "--validate-modules") == 0) {
             AddOption("-Djdk.module.validation=true", NULL);
             validateModules = JNI_TRUE;
+        } else if (JLI_StrCmp(arg, "--enforce-jar-verification") == 0) {
+            enforceJarVerification = JNI_TRUE;
         } else if (JLI_StrCmp(arg, "--describe-module") == 0 ||
                    JLI_StrCCmp(arg, "--describe-module=") == 0 ||
                    JLI_StrCmp(arg, "-d") == 0) {
@@ -1596,11 +1599,11 @@ LoadMainClass(JNIEnv *env, int mode, char *name)
     }
     NULL_CHECK0(mid = (*env)->GetStaticMethodID(env, cls,
                 "checkAndLoadMain",
-                "(ZILjava/lang/String;)Ljava/lang/Class;"));
+                "(ZILjava/lang/String;Z)Ljava/lang/Class;"));
 
     NULL_CHECK0(str = NewPlatformString(env, name));
     NULL_CHECK0(result = (*env)->CallStaticObjectMethod(env, cls, mid,
-                                                        USE_STDERR, mode, str));
+                                                        USE_STDERR, mode, str, enforceJarVerification));
 
     if (JLI_IsTraceLauncher()) {
         end = CurrentTimeMicros();
