@@ -51,6 +51,7 @@ module jdk.jartool {
     requires jdk.internal.opt;
 
     exports jdk.security.jarsigner;
+    exports sun.security.tools.jarsigner to java.base;
 
     provides java.util.spi.ToolProvider with
         sun.tools.jar.JarToolProvider;

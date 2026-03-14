@@ -735,7 +735,7 @@ public class Main {
         throw new ExitException(0);
     }
 
-    void verifyJar(String jarName)
+    public void verifyJar(String jarName)
         throws Exception
     {
         boolean anySigned = false;  // if there exists entry inside jar signed

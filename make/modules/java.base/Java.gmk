@@ -33,7 +33,8 @@
 
 DOCLINT += -Xdoclint:all/protected \
     '-Xdoclint/package:java.*,javax.*'
-JAVAC_FLAGS += -XDstringConcat=inline
+JAVAC_FLAGS += -XDstringConcat=inline \
+    --add-reads java.base=jdk.jartool
 COPY += .icu .dat .spp .nrm .txt content-types.properties \
     hijrah-config-Hijrah-umalqura_islamic-umalqura.properties
 CLEAN += intrinsic.properties
