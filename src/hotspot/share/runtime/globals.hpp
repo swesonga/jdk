@@ -2007,6 +2007,9 @@ const int ObjectAlignmentInBytes = 8;
           "Minimal number of elements in a sorted collection to prefer"     \
           "binary search over simple linear search." )                      \
                                                                             \
+  product(bool, EnforceJarVerification, false,                              \
+          "Require JAR files to be signed and verified before execution.")  \
+                                                                            \
 
 // end of RUNTIME_FLAGS
 
