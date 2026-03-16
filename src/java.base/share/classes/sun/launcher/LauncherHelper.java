@@ -948,7 +948,9 @@ public final class LauncherHelper {
             if (jarVerificationMode == 1 << 1) {
                 abort(null, "java.launcher.jar.error.verification", jarName, "1");
             }
+            ostream.println("Starting JAR verification for " + jarName + " with mode " + jarVerificationMode);
             verifyMethod.invoke(instance, jarName);
+            ostream.println("verifyMethod.invoke completed for " + jarName + " with mode " + jarVerificationMode);
             if (jarVerificationMode == 1 << 2) {
                 abort(null, "java.launcher.jar.error.verification", jarName, "2");
             }
