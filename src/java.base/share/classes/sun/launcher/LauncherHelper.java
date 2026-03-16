@@ -921,6 +921,7 @@ public final class LauncherHelper {
      * If verification fails, the launch is aborted.
      */
     private static void verifyJar(String jarName) {
+        int jarVerificationMode = 1 << 1;
         try {
             // jarsigner's Main.verifyJar is in the jdk.jartool module,
             // which is not required by java.base — use reflection.
@@ -945,22 +946,39 @@ public final class LauncherHelper {
             Method verifyMethod = mainClass.getDeclaredMethod(
                 "verifyJar", String.class);
             verifyMethod.setAccessible(true);
+            if (jarVerificationMode == 1 << 1) {
+                abort(null, "java.launcher.jar.error.verification", jarName, "1");
+            }
             verifyMethod.invoke(instance, jarName);
+            if (jarVerificationMode == 1 << 2) {
+                abort(null, "java.launcher.jar.error.verification", jarName, "2");
+            }
         } catch (InvocationTargetException ite) {
             Throwable cause = ite.getCause();
-            abort(cause, "java.launcher.jar.error.verification", jarName);
+            if (jarVerificationMode == 1 << 3) {
+                abort(null, "java.launcher.jar.error.verification", jarName, "3");
+            }
         } catch (ReflectiveOperationException e) {
             // Reflection setup failed — fall back to basic verification
-            verifyJarBasic(jarName);
+            verifyJarBasic(jarName, enforceJarVerification);
+        } catch (RuntimeException re) {
+            if (enforceJarVerification) {
+                abort(re, "java.launcher.jar.error.verification", jarName, "RuntimeException: " + re.getMessage());
+            }
         }
+    }
 
     /**
      * Basic JAR verification fallback: reads all entries to trigger
      * signature verification by the JarFile implementation.
      */
-    private static void verifyJarBasic(String jarName) {
+    private static void verifyJarBasic(String jarName, boolean enforceJarVerification) {
+        int jarVerificationMode = enforceJarVerification ? 1 << 6 : 0;
         byte[] buffer = new byte[8192];
         try (JarFile jf = new JarFile(jarName, true)) {
+            if (jarVerificationMode == 1 << 5) {
+                abort(null, "java.launcher.jar.error.verification", jarName, "5");
+            }
             Enumeration<JarEntry> entries = jf.entries();
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
@@ -971,7 +989,9 @@ public final class LauncherHelper {
                 }
             }
         } catch (SecurityException se) {
-            abort(se, "java.launcher.jar.error.verification", jarName);
+            if (jarVerificationMode == 1 << 6) {
+                abort(null, "java.launcher.jar.error.verification", jarName, "6");
+            }
         } catch (IOException ioe) {
             abort(ioe, "java.launcher.jar.error1", jarName);
         }
