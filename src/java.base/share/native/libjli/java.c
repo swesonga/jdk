@@ -1140,7 +1140,8 @@ GetOpt(int *pargc, char ***pargv, char **poption, char **pvalue) {
         if (JLI_StrCCmp(arg, "--describe-module=") == 0 ||
             JLI_StrCCmp(arg, "--module=") == 0 ||
             JLI_StrCCmp(arg, "--class-path=") == 0||
-            JLI_StrCCmp(arg, "--source=") == 0) {
+            JLI_StrCCmp(arg, "--source=") == 0||
+            JLI_StrCCmp(arg, "--enforce-jar-verification=") == 0) {
             kind = LAUNCHER_OPTION_WITH_ARGUMENT;
         } else {
             kind = VM_LONG_OPTION;
@@ -1221,8 +1222,13 @@ ParseArguments(int *pargc, char ***pargv,
         } else if (JLI_StrCmp(arg, "--validate-modules") == 0) {
             AddOption("-Djdk.module.validation=true", NULL);
             validateModules = JNI_TRUE;
-        } else if (JLI_StrCmp(arg, "--enforce-jar-verification") == 0) {
-            enforceJarVerification = 1;
+        } else if (JLI_StrCmp(arg, "--enforce-jar-verification") == 0 ||
+                   JLI_StrCCmp(arg, "--enforce-jar-verification=") == 0) {
+            if (value != NULL) {
+                enforceJarVerification = JLI_StrLen(value) > 0 ? atoi(value) : 1;
+            } else {
+                enforceJarVerification = 1;
+            }
         } else if (JLI_StrCmp(arg, "--describe-module") == 0 ||
                    JLI_StrCCmp(arg, "--describe-module=") == 0 ||
                    JLI_StrCmp(arg, "-d") == 0) {
