@@ -860,7 +860,10 @@ public final class LauncherHelper {
             case LM_JAR:
                 try {
                     if (enforceJarVerification != 0) {
-                        verifyJar(what, enforceJarVerification);
+                        if (!verifyJar(what, enforceJarVerification)) {
+                            abort(null, "java.launcher.jar.error.verification",
+                                what, "unknown");
+                        }
                     }
                     jarFile = new JarFile(what);
                     cn = getMainClassFromJar(jarFile);
@@ -920,7 +923,7 @@ public final class LauncherHelper {
      * to reading all JAR entries to trigger basic signature verification.
      * If verification fails, the launch is aborted.
      */
-    private static void verifyJar(String jarName, int jarVerificationMode) {
+    private static boolean verifyJar(String jarName, int jarVerificationMode) {
         ostream.println(">> Starting JAR verification for " + jarName + " with mode " + jarVerificationMode);
         try {
             // jarsigner's Main.run is in the jdk.jartool module,
@@ -929,8 +932,7 @@ public final class LauncherHelper {
             Optional<Module> jartoolOpt =
                 ModuleLayer.boot().findModule("jdk.jartool");
             if (jartoolOpt.isEmpty()) {
-                verifyJarBasic(jarName, jarVerificationMode);
-                return;
+                return false;
             }
 
             Module base = LauncherHelper.class.getModule();
@@ -961,6 +963,7 @@ public final class LauncherHelper {
             // Reflection setup failed — fall back to basic verification
             ostream.println(">> Reflection setup failed: " + e.toString());
             verifyJarBasic(jarName, jarVerificationMode);
+            return false;
         } catch (RuntimeException e) {
             ostream.println(">> Verification failed: " + e.toString());
             Throwable cause = e.getCause();
@@ -968,35 +971,7 @@ public final class LauncherHelper {
                 jarName, cause != null ? cause.getMessage() : "unknown");
         }
         ostream.println(">> JAR verification completed for " + jarName + " with mode " + jarVerificationMode);
-    }
-
-    /**
-     * Basic JAR verification fallback: reads all entries to trigger
-     * signature verification by the JarFile implementation.
-     */
-    private static void verifyJarBasic(String jarName, int jarVerificationMode) {
-        ostream.println(">> Starting basic JAR verification for " + jarName + " with mode " + jarVerificationMode);
-        byte[] buffer = new byte[8192];
-        try (JarFile jf = new JarFile(jarName, true)) {
-            if (jarVerificationMode == 1 << 5) {
-                abort(null, "java.launcher.jar.error.verification", jarName, "5");
-            }
-            Enumeration<JarEntry> entries = jf.entries();
-            while (entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                try (java.io.InputStream is = jf.getInputStream(entry)) {
-                    while (is.read(buffer) != -1) {
-                        // read to trigger verification
-                    }
-                }
-            }
-        } catch (SecurityException se) {
-            if (jarVerificationMode == 1 << 6) {
-                abort(null, "java.launcher.jar.error.verification", jarName, "6");
-            }
-        } catch (IOException ioe) {
-            abort(ioe, "java.launcher.jar.error1", jarName);
-        }
+        return true;
     }
 
     /*
