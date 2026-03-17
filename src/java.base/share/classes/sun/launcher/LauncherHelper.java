@@ -949,7 +949,7 @@ public final class LauncherHelper {
             Method runMethod = mainClass.getMethod("run", String[].class);
             ostream.println(">> Invoking jarsigner Main.run for " + jarName + " with mode " + jarVerificationMode);
             int rc = (int) runMethod.invoke(instance,
-                (Object) new String[]{"-verify -strict", jarName});
+                (Object) new String[]{"-strict", "-verify", jarName});
             ostream.println(">> runMethod.invoke completed with return code " + rc + " for " + jarName);
             if (rc != 0) {
                 abort(null, "java.launcher.jar.error.verification",
