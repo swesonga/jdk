@@ -963,7 +963,6 @@ public final class LauncherHelper {
         } catch (ReflectiveOperationException e) {
             // Reflection setup failed — fall back to basic verification
             ostream.println(">> Reflection setup failed: " + e.toString());
-            verifyJarBasic(jarName, jarVerificationMode);
             return false;
         } catch (RuntimeException e) {
             ostream.println(">> Verification failed: " + e.toString());
