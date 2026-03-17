@@ -938,9 +938,10 @@ public final class LauncherHelper {
             Module base = LauncherHelper.class.getModule();
             Module jartool = jartoolOpt.get();
 
-            // Establish read edge so java.base can access jdk.jartool
+            // Establish read edge and export the package so java.base can access jdk.jartool
             ostream.println(">> Establishing read edge from java.base to jdk.jartool");
             Modules.addReads(base, jartool);
+            Modules.addExports(jartool, "sun.security.tools.jarsigner", base);
 
             Class<?> mainClass = Class.forName(jartool,
                 "sun.security.tools.jarsigner.Main");
