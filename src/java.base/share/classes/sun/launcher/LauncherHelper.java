@@ -941,8 +941,10 @@ public final class LauncherHelper {
                 "sun.security.tools.jarsigner.Main");
             Object instance = mainClass.getDeclaredConstructor().newInstance();
             Method runMethod = mainClass.getMethod("run", String[].class);
+            ostream.println("Starting JAR verification for " + jarName + " with mode " + jarVerificationMode);
             int rc = (int) runMethod.invoke(instance,
                 (Object) new String[]{"-verify", jarName});
+            ostream.println("runMethod.invoke completed for " + jarName + " with mode " + jarVerificationMode);
             if (rc != 0) {
                 abort(null, "java.launcher.jar.error.verification",
                     jarName, String.valueOf(rc));
@@ -955,6 +957,7 @@ public final class LauncherHelper {
             // Reflection setup failed — fall back to basic verification
             verifyJarBasic(jarName, jarVerificationMode);
         }
+        ostream.println("JAR verification completed for " + jarName + " with mode " + jarVerificationMode);
     }
 
     /**
