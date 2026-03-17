@@ -940,7 +940,7 @@ public final class LauncherHelper {
             ostream.println(">> Establishing read edge from java.base to jdk.jartool");
             Modules.addReads(base, jartool);
 
-            Class<?> mainClass = Class.forName(
+            Class<?> mainClass = Class.forName(jartool,
                 "sun.security.tools.jarsigner.Main");
             Object instance = mainClass.getDeclaredConstructor().newInstance();
             Method runMethod = mainClass.getMethod("run", String[].class);
