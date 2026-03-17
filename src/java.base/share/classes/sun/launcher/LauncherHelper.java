@@ -915,14 +915,14 @@ public final class LauncherHelper {
     }
 
     /**
-     * Verifies the JAR file by invoking jarsigner's full verification logic
+     * Verifies the JAR file by invoking jarsigner's Main.run method
      * via reflection. If the jdk.jartool module is not available, falls back
      * to reading all JAR entries to trigger basic signature verification.
      * If verification fails, the launch is aborted.
      */
     private static void verifyJar(String jarName, int jarVerificationMode) {
         try {
-            // jarsigner's Main.verifyJar is in the jdk.jartool module,
+            // jarsigner's Main.run is in the jdk.jartool module,
             // which is not required by java.base — use reflection.
             Optional<Module> jartoolOpt =
                 ModuleLayer.boot().findModule("jdk.jartool");
@@ -934,40 +934,27 @@ public final class LauncherHelper {
             Module base = LauncherHelper.class.getModule();
             Module jartool = jartoolOpt.get();
 
-            // Establish read edge and open the package for deep reflection
+            // Establish read edge so java.base can access jdk.jartool
             Modules.addReads(base, jartool);
-            Modules.addOpens(jartool,
-                "sun.security.tools.jarsigner", base);
 
             Class<?> mainClass = Class.forName(
                 "sun.security.tools.jarsigner.Main");
             Object instance = mainClass.getDeclaredConstructor().newInstance();
-            Method verifyMethod = mainClass.getDeclaredMethod(
-                "verifyJar", String.class);
-            verifyMethod.setAccessible(true);
-            if (jarVerificationMode == 1 << 1) {
-                abort(null, "java.launcher.jar.error.verification", jarName, "1");
-            }
-            ostream.println("Starting JAR verification for " + jarName + " with mode " + jarVerificationMode);
-            verifyMethod.invoke(instance, jarName);
-            ostream.println("verifyMethod.invoke completed for " + jarName + " with mode " + jarVerificationMode);
-            if (jarVerificationMode == 1 << 2) {
-                abort(null, "java.launcher.jar.error.verification", jarName, "2");
+            Method runMethod = mainClass.getMethod("run", String[].class);
+            int rc = (int) runMethod.invoke(instance,
+                (Object) new String[]{"-verify", jarName});
+            if (rc != 0) {
+                abort(null, "java.launcher.jar.error.verification",
+                    jarName, String.valueOf(rc));
             }
         } catch (InvocationTargetException ite) {
             Throwable cause = ite.getCause();
-            if (jarVerificationMode == 1 << 3) {
-                abort(null, "java.launcher.jar.error.verification", jarName, "3");
-            }
+            abort(cause, "java.launcher.jar.error.verification",
+                jarName, cause != null ? cause.getMessage() : "unknown");
         } catch (ReflectiveOperationException e) {
             // Reflection setup failed — fall back to basic verification
             verifyJarBasic(jarName, jarVerificationMode);
-        } catch (RuntimeException re) {
-            if (jarVerificationMode != 0) {
-                abort(re, "java.launcher.jar.error.verification", jarName, "RuntimeException: " + re.getMessage());
-            }
         }
-        ostream.println("JAR verification completed for " + jarName + " with mode " + jarVerificationMode);
     }
 
     /**
