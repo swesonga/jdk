@@ -953,13 +953,16 @@ public final class LauncherHelper {
                     jarName, String.valueOf(rc));
             }
         } catch (InvocationTargetException ite) {
+            ostream.println(">> Reflection failed: " + ite.toString());
             Throwable cause = ite.getCause();
             abort(cause, "java.launcher.jar.error.verification",
                 jarName, cause != null ? cause.getMessage() : "unknown");
         } catch (ReflectiveOperationException e) {
             // Reflection setup failed — fall back to basic verification
+            ostream.println(">> Reflection setup failed: " + e.toString());
             verifyJarBasic(jarName, jarVerificationMode);
         } catch (RuntimeException e) {
+            ostream.println(">> Verification failed: " + e.toString());
             Throwable cause = e.getCause();
             abort(cause, "java.launcher.jar.error.verification",
                 jarName, cause != null ? cause.getMessage() : "unknown");
