@@ -738,6 +738,8 @@ public class Main {
     void verifyJar(String jarName)
         throws Exception
     {
+        System.out.println("Verifying: " + jarName);
+
         boolean anySigned = false;  // if there exists entry inside jar signed
         JarFile jf = null;
         Map<String,String> digestMap = new HashMap<>();
@@ -1136,6 +1138,7 @@ public class Main {
                 jf.close();
             }
         }
+        System.out.println("Done verifying: " + jarName);
     }
 
     private void crossCheckEntries(String jarName) throws Exception {

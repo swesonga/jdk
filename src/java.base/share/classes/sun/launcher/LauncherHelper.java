@@ -968,9 +968,6 @@ public final class LauncherHelper {
             }
         }
         ostream.println("JAR verification completed for " + jarName + " with mode " + jarVerificationMode);
-        if (jarVerificationMode != 0) {
-            abort(null, "java.launcher.jar.error.verification", jarName, "end of my verifyJar");
-        }
     }
 
     /**
