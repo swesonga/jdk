@@ -1229,6 +1229,11 @@ ParseArguments(int *pargc, char ***pargv,
             } else {
                 enforceJarVerification = 1;
             }
+            {
+                char buf[64];
+                snprintf(buf, sizeof(buf), "-Djdk.jar.verification=%d", enforceJarVerification);
+                AddOption(buf, NULL);
+            }
         } else if (JLI_StrCmp(arg, "--describe-module") == 0 ||
                    JLI_StrCCmp(arg, "--describe-module=") == 0 ||
                    JLI_StrCmp(arg, "-d") == 0) {

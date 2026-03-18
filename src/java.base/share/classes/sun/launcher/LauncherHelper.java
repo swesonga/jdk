@@ -74,6 +74,7 @@ import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import jdk.internal.loader.URLClassPath;
 import jdk.internal.misc.MethodFinder;
 import jdk.internal.misc.VM;
 import jdk.internal.module.ModuleBootstrap;
@@ -918,59 +919,21 @@ public final class LauncherHelper {
     }
 
     /**
-     * Verifies the JAR file by invoking jarsigner's Main.run method
-     * via reflection. If the jdk.jartool module is not available, falls back
-     * to reading all JAR entries to trigger basic signature verification.
+     * Verifies the JAR file's digital signature using the jarsigner utility
+     * (via {@link jdk.internal.loader.URLClassPath#verifyJarSignature}).
      * If verification fails, the launch is aborted.
+     *
+     * @return true if verification succeeded or was skipped because
+     *         jdk.jartool is unavailable; false should not normally occur
+     *         because failures call abort()
      */
     private static boolean verifyJar(String jarName, int jarVerificationMode) {
-        ostream.println(">> Starting JAR verification for " + jarName + " with mode " + jarVerificationMode);
         try {
-            // jarsigner's Main.run is in the jdk.jartool module,
-            // which is not required by java.base — use reflection.
-            ostream.println(">> Finding jdk.jartool module for JAR verification");
-            Optional<Module> jartoolOpt =
-                ModuleLayer.boot().findModule("jdk.jartool");
-            if (jartoolOpt.isEmpty()) {
-                return false;
-            }
-
-            Module base = LauncherHelper.class.getModule();
-            Module jartool = jartoolOpt.get();
-
-            // Establish read edge and export the package so java.base can access jdk.jartool
-            ostream.println(">> Establishing read edge from java.base to jdk.jartool");
-            Modules.addReads(base, jartool);
-            Modules.addExports(jartool, "sun.security.tools.jarsigner", base);
-
-            Class<?> mainClass = Class.forName(jartool,
-                "sun.security.tools.jarsigner.Main");
-            Object instance = mainClass.getDeclaredConstructor().newInstance();
-            Method runMethod = mainClass.getMethod("run", String[].class);
-            ostream.println(">> Invoking jarsigner Main.run for " + jarName + " with mode " + jarVerificationMode);
-            int rc = (int) runMethod.invoke(instance,
-                (Object) new String[]{"-strict", "-verify", jarName});
-            ostream.println(">> runMethod.invoke completed with return code " + rc + " for " + jarName);
-            if (rc != 0) {
-                abort(null, "java.launcher.jar.error.verification",
-                    jarName, String.valueOf(rc));
-            }
-        } catch (InvocationTargetException ite) {
-            ostream.println(">> Reflection failed: " + ite.toString());
-            Throwable cause = ite.getCause();
-            abort(cause, "java.launcher.jar.error.verification",
-                jarName, cause != null ? cause.getMessage() : "unknown");
-        } catch (ReflectiveOperationException e) {
-            // Reflection setup failed — fall back to basic verification
-            ostream.println(">> Reflection setup failed: " + e.toString());
-            return false;
-        } catch (RuntimeException e) {
-            ostream.println(">> Verification failed: " + e.toString());
-            Throwable cause = e.getCause();
-            abort(cause, "java.launcher.jar.error.verification",
-                jarName, cause != null ? cause.getMessage() : "unknown");
+            URLClassPath.verifyJarSignature(jarName);
+        } catch (IOException e) {
+            abort(e, "java.launcher.jar.error.verification",
+                jarName, e.getMessage());
         }
-        ostream.println(">> JAR verification completed for " + jarName + " with mode " + jarVerificationMode);
         return true;
     }
 

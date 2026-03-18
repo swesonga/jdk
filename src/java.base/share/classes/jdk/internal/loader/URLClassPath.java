@@ -50,6 +50,9 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.jar.JarFile;
 import java.util.zip.CRC32;
 import java.util.jar.JarEntry;
@@ -61,6 +64,7 @@ import java.util.zip.ZipFile;
 import jdk.internal.access.JavaNetURLAccess;
 import jdk.internal.access.JavaUtilZipFileAccess;
 import jdk.internal.access.SharedSecrets;
+import jdk.internal.module.Modules;
 import sun.net.util.URLUtil;
 import sun.net.www.ParseUtil;
 
@@ -77,6 +81,7 @@ public class URLClassPath {
     private static final boolean JAR_CHECKING_ENABLED;
     private static final boolean DISABLE_CP_URL_CHECK;
     private static final boolean DEBUG_CP_URL_CHECK;
+    private static final int VERIFY_CLASSPATH_JARS;
 
     static {
         Properties props = System.getProperties();
@@ -95,6 +100,85 @@ public class URLClassPath {
         // the check is not disabled).
         p = props.getProperty("jdk.net.URLClassPath.showIgnoredClassPathEntries");
         DEBUG_CP_URL_CHECK = p != null ? p.equals("true") || p.isEmpty() : false;
+
+        // JAR signature verification mode set by --enforce-jar-verification=N
+        p = props.getProperty("jdk.jar.verification");
+        VERIFY_CLASSPATH_JARS = (p != null) ? Integer.parseInt(p) : 0;
+    }
+
+    /*
+     * Cached jarsigner reflection state for on-demand JAR signature verification.
+     * Initialized lazily on first use; guarded by initJarsignerReflection's synchronization.
+     */
+    private static volatile Method jarsignerRunMethod;
+    private static volatile Constructor<?> jarsignerCtor;
+    private static volatile boolean jarsignerAvailable = true;
+
+    /**
+     * Initializes the jarsigner reflection state (module reads/exports,
+     * class lookup, method handle). Called at most once; subsequent calls
+     * are no-ops.
+     */
+    private static synchronized void initJarsignerReflection() {
+        if (jarsignerRunMethod != null || !jarsignerAvailable) return;
+        try {
+            Module jartool = ModuleLayer.boot()
+                    .findModule("jdk.jartool").orElse(null);
+            if (jartool == null) {
+                jarsignerAvailable = false;
+                return;
+            }
+            Module base = URLClassPath.class.getModule();
+            Modules.addReads(base, jartool);
+            Modules.addExports(jartool, "sun.security.tools.jarsigner", base);
+
+            Class<?> mainClass = Class.forName(jartool,
+                    "sun.security.tools.jarsigner.Main");
+            if (mainClass == null) {
+                jarsignerAvailable = false;
+                return;
+            }
+            jarsignerCtor = mainClass.getDeclaredConstructor();
+            jarsignerRunMethod = mainClass.getMethod("run", String[].class);
+        } catch (ReflectiveOperationException e) {
+            jarsignerAvailable = false;
+        }
+    }
+
+    /**
+     * Verifies the signature of a JAR file using jarsigner (via reflection
+     * into jdk.jartool). Throws IOException if verification fails.
+     * Does nothing if jdk.jartool is not available.
+     *
+     * @param jarPath the file system path of the JAR to verify
+     * @throws IOException if the JAR is unsigned, tampered, or verification
+     *         otherwise fails
+     */
+    public static void verifyJarSignature(String jarPath) throws IOException {
+        if (!jarsignerAvailable) return;
+        try {
+            if (jarsignerRunMethod == null) {
+                initJarsignerReflection();
+            }
+            if (!jarsignerAvailable) return;
+
+            Object instance = jarsignerCtor.newInstance();
+            int rc = (int) jarsignerRunMethod.invoke(instance,
+                    (Object) new String[]{"-strict", "-verify", jarPath});
+            if (rc != 0) {
+                throw new IOException(
+                        "JAR signature verification failed for " + jarPath
+                        + " (jarsigner exit code " + rc + ")");
+            }
+        } catch (IOException e) {
+            throw e;
+        } catch (InvocationTargetException ite) {
+            Throwable cause = ite.getCause();
+            throw new IOException(
+                    "JAR signature verification failed for " + jarPath, cause);
+        } catch (ReflectiveOperationException e) {
+            jarsignerAvailable = false;
+        }
     }
 
     /* Search path of URLs passed to the constructor or by calls to addURL.
@@ -664,6 +748,8 @@ public class URLClassPath {
         /*
          * Throws an IOException if the LOC file Header Signature (0x04034b50),
          * is not found starting at byte 0 of the given jar.
+         * If --enforce-jar-verification is enabled, also verifies the JAR's
+         * digital signature via jarsigner.
          */
         static JarFile checkJar(JarFile jar) throws IOException {
             if (JAR_CHECKING_ENABLED && !zipAccess.startsWithLocHeader(jar)) {
@@ -674,6 +760,9 @@ public class URLClassPath {
                     x.addSuppressed(ex);
                 }
                 throw x;
+            }
+            if (VERIFY_CLASSPATH_JARS != 0) {
+                verifyJarSignature(jar.getName());
             }
             return jar;
         }
