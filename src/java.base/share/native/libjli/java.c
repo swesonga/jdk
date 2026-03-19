@@ -1141,7 +1141,8 @@ GetOpt(int *pargc, char ***pargv, char **poption, char **pvalue) {
             JLI_StrCCmp(arg, "--module=") == 0 ||
             JLI_StrCCmp(arg, "--class-path=") == 0||
             JLI_StrCCmp(arg, "--source=") == 0||
-            JLI_StrCCmp(arg, "--enforce-jar-verification=") == 0) {
+            JLI_StrCCmp(arg, "--enforce-jar-verification=") == 0||
+            JLI_StrCCmp(arg, "--enforce-jar-verification-for-dependencies=") == 0) {
             kind = LAUNCHER_OPTION_WITH_ARGUMENT;
         } else {
             kind = VM_LONG_OPTION;
@@ -1233,6 +1234,26 @@ ParseArguments(int *pargc, char ***pargv,
                 const char *prop = "-Djdk.jar.verification=";
                 char val[12];
                 snprintf(val, sizeof(val), "%d", enforceJarVerification);
+                size_t size = JLI_StrLen(prop) + JLI_StrLen(val) + 1;
+                char *propValue = (char *)JLI_MemAlloc(size);
+                JLI_Snprintf(propValue, size, "%s%s", prop, val);
+                AddOption(propValue, NULL);
+            }
+        } else if (JLI_StrCmp(arg, "--enforce-jar-verification-for-dependencies") == 0 ||
+                   JLI_StrCCmp(arg, "--enforce-jar-verification-for-dependencies=") == 0) {
+            /* Like --enforce-jar-verification but only verifies dependency
+             * JARs loaded from the classpath, not the main JAR itself.
+             * Sets the system property without setting enforceJarVerification
+             * so that LauncherHelper.loadMainClass skips main-JAR verification
+             * while URLClassPath.checkJar still verifies classpath JARs. */
+            {
+                jint level = 1;
+                if (value != NULL && JLI_StrLen(value) > 0) {
+                    level = atoi(value);
+                }
+                const char *prop = "-Djdk.jar.verification=";
+                char val[12];
+                snprintf(val, sizeof(val), "%d", level);
                 size_t size = JLI_StrLen(prop) + JLI_StrLen(val) + 1;
                 char *propValue = (char *)JLI_MemAlloc(size);
                 JLI_Snprintf(propValue, size, "%s%s", prop, val);
