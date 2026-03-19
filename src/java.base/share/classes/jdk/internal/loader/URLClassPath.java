@@ -46,9 +46,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Properties;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -107,6 +109,14 @@ public class URLClassPath {
     }
 
     /*
+     * Set of canonical JAR paths that have already been verified or should
+     * be excluded from classpath verification (e.g. the main -jar target
+     * that was already verified by LauncherHelper, or intentionally skipped
+     * by --enforce-jar-verification-for-dependencies).
+     */
+    private static final Set<String> verifiedJarPaths = new HashSet<>();
+
+    /*
      * Cached jarsigner reflection state for on-demand JAR signature verification.
      * Initialized lazily on first use; guarded by initJarsignerReflection's synchronization.
      */
@@ -156,6 +166,12 @@ public class URLClassPath {
      */
     public static void verifyJarSignature(String jarPath) throws IOException {
         if (!jarsignerAvailable) return;
+
+        String canonical = canonicalJarPath(jarPath);
+        synchronized (verifiedJarPaths) {
+            if (verifiedJarPaths.contains(canonical)) return;
+        }
+
         try {
             if (jarsignerRunMethod == null) {
                 initJarsignerReflection();
@@ -170,6 +186,11 @@ public class URLClassPath {
                         "JAR signature verification failed for " + jarPath
                         + " (jarsigner exit code " + rc + ")");
             }
+
+            // Record as verified so checkJar won't re-verify
+            synchronized (verifiedJarPaths) {
+                verifiedJarPaths.add(canonical);
+            }
         } catch (IOException e) {
             throw e;
         } catch (InvocationTargetException ite) {
@@ -178,6 +199,33 @@ public class URLClassPath {
                     "JAR signature verification failed for " + jarPath, cause);
         } catch (ReflectiveOperationException e) {
             jarsignerAvailable = false;
+        }
+    }
+
+    /**
+     * Marks a JAR path as already handled so that {@code checkJar} will
+     * not attempt to verify it again. Called by the launcher to register
+     * the main {@code -jar} target that was either already verified or
+     * intentionally excluded from verification.
+     *
+     * @param jarPath the file system path of the JAR
+     */
+    public static void skipJarVerification(String jarPath) {
+        String canonical = canonicalJarPath(jarPath);
+        synchronized (verifiedJarPaths) {
+            verifiedJarPaths.add(canonical);
+        }
+    }
+
+    /**
+     * Returns the canonical path for a JAR, falling back to the
+     * original path if canonicalization fails.
+     */
+    private static String canonicalJarPath(String jarPath) {
+        try {
+            return new File(jarPath).getCanonicalPath();
+        } catch (IOException e) {
+            return jarPath;
         }
     }
 

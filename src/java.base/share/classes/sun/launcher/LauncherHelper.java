@@ -865,6 +865,11 @@ public final class LauncherHelper {
                             abort(null, "java.launcher.jar.error.verification",
                                 what, "unknown");
                         }
+                    } else {
+                        // Mark the main JAR as already handled so that
+                        // URLClassPath.checkJar does not re-verify it when
+                        // it is opened as a classpath entry.
+                        URLClassPath.skipJarVerification(what);
                     }
                     jarFile = new JarFile(what);
                     cn = getMainClassFromJar(jarFile);
