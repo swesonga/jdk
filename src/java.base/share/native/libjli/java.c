@@ -1230,9 +1230,13 @@ ParseArguments(int *pargc, char ***pargv,
                 enforceJarVerification = 1;
             }
             {
-                char buf[64];
-                snprintf(buf, sizeof(buf), "-Djdk.jar.verification=%d", enforceJarVerification);
-                AddOption(buf, NULL);
+                const char *prop = "-Djdk.jar.verification=";
+                char val[12];
+                snprintf(val, sizeof(val), "%d", enforceJarVerification);
+                size_t size = JLI_StrLen(prop) + JLI_StrLen(val) + 1;
+                char *propValue = (char *)JLI_MemAlloc(size);
+                JLI_Snprintf(propValue, size, "%s%s", prop, val);
+                AddOption(propValue, NULL);
             }
         } else if (JLI_StrCmp(arg, "--describe-module") == 0 ||
                    JLI_StrCCmp(arg, "--describe-module=") == 0 ||
