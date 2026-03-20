@@ -229,6 +229,75 @@ public class URLClassPath {
         }
     }
 
+    /*
+     * WLDP (Windows Lockdown Policy) support.
+     *
+     * On Windows, WldpCanExecuteFile queries Windows Defender Application
+     * Control (WDAC) policy to determine whether a file is allowed to
+     * execute.  This is used to validate .class files loaded from
+     * classpath directories.  On non-Windows platforms the native stub
+     * returns -1 (unavailable) and the check is a no-op.
+     *
+     * Return values from native:
+     *   -1  WLDP API unavailable (non-Windows or old Windows)
+     *   -2  Error (cannot open file, HRESULT failure)
+     *    0  WLDP_EXECUTION_POLICY_BLOCKED
+     *    1  WLDP_EXECUTION_POLICY_ALLOWED
+     *    2  WLDP_EXECUTION_POLICY_REQUIRE_SANDBOX
+     */
+    private static final int WLDP_POLICY_BLOCKED         = 0;
+    private static final int WLDP_POLICY_ALLOWED         = 1;
+    private static final int WLDP_POLICY_REQUIRE_SANDBOX = 2;
+    private static final int WLDP_UNAVAILABLE            = -1;
+    private static final int WLDP_ERROR                  = -2;
+
+    private static native int wldpCanExecuteFile0(String path);
+
+    /**
+     * Checks whether the given file is allowed to execute by Windows
+     * Lockdown Policy.  Returns {@code true} if the file is allowed
+     * (or if WLDP is unavailable / check is disabled), {@code false}
+     * if the file is blocked.
+     *
+     * @param file the file to check
+     * @return true if execution is permitted
+     */
+    static boolean checkWldpPolicy(File file) {
+        if (VERIFY_CLASSPATH_JARS == 0) {
+            return true;
+        }
+        try {
+            int policy = wldpCanExecuteFile0(file.getCanonicalPath());
+            if (policy == WLDP_UNAVAILABLE) {
+                return true;  // WLDP not available, allow
+            }
+            if (policy == WLDP_ERROR) {
+                if (DEBUG) {
+                    System.err.println("WLDP check error for " + file);
+                }
+                return false;  // fail closed on error
+            }
+            if (policy == WLDP_POLICY_BLOCKED) {
+                if (DEBUG) {
+                    System.err.println("WLDP blocked execution of " + file);
+                }
+                return false;
+            }
+            if (policy == WLDP_POLICY_REQUIRE_SANDBOX) {
+                if (DEBUG) {
+                    System.err.println("WLDP requires sandbox for " + file);
+                }
+                return false;  // no sandbox available, treat as blocked
+            }
+            return true;  // WLDP_POLICY_ALLOWED
+        } catch (IOException e) {
+            if (DEBUG) {
+                System.err.println("WLDP check failed for " + file + ": " + e);
+            }
+            return false;  // fail closed
+        }
+    }
+
     /* Search path of URLs passed to the constructor or by calls to addURL.
      * Access is guarded by a monitor on 'searchPath' itself
      */
@@ -1095,6 +1164,11 @@ public class URLClassPath {
                 }
 
                 if (file.exists()) {
+                    // If WLDP enforcement is enabled, check whether
+                    // Windows policy allows execution of this file.
+                    if (name.endsWith(".class") && !checkWldpPolicy(file)) {
+                        return null;
+                    }
                     return new Resource() {
                         public String getName() { return name; };
                         public URL getURL() { return url; };
