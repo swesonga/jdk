@@ -192,6 +192,7 @@ public class Main {
     boolean signManifest = true; // "sign" the whole manifest
     boolean externalSF = true; // leave the .SF out of the PKCS7 block
     boolean strict = false;  // treat warnings as error
+    boolean allowSelfSigned = false; // allow self-signed certificates
     boolean revocationCheck = false; // Revocation check flag
 
     // read zip entry raw bytes
@@ -340,8 +341,11 @@ public class Main {
 
         if (strict) {
             int exitCode = 0;
+            if (signerSelfSigned && !allowSelfSigned) {
+                exitCode |= 4;
+            }
             if (disabledAlg != 0 || chainNotValidated || hasExpiredCert
-                    || hasExpiredTsaCert || notYetValidCert || signerSelfSigned) {
+                    || hasExpiredTsaCert || notYetValidCert) {
                 exitCode |= 4;
             }
             if (badKeyUsage || badExtendedKeyUsage || badNetscapeCertType) {
@@ -514,6 +518,8 @@ public class Main {
                 showcerts = true;
             } else if (collator.compare(flags, "-strict") ==0) {
                 strict = true;
+            } else if (collator.compare(flags, "--allow-self-signed-certs") ==0) {
+                allowSelfSigned = true;
             } else if (collator.compare(flags, "-?") == 0 ||
                        collator.compare(flags, "-h") == 0 ||
                        collator.compare(flags, "--help") == 0 ||
