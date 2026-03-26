@@ -1259,6 +1259,8 @@ ParseArguments(int *pargc, char ***pargv,
                 JLI_Snprintf(propValue, size, "%s%s", prop, val);
                 AddOption(propValue, NULL);
             }
+        } else if (JLI_StrCmp(arg, "--allow-self-signed-certs") == 0) {
+            AddOption("-Djdk.jar.verification.allowSelfSignedCerts=true", NULL);
         } else if (JLI_StrCmp(arg, "--describe-module") == 0 ||
                    JLI_StrCCmp(arg, "--describe-module=") == 0 ||
                    JLI_StrCmp(arg, "-d") == 0) {

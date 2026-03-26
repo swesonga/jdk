@@ -84,6 +84,7 @@ public class URLClassPath {
     private static final boolean DISABLE_CP_URL_CHECK;
     private static final boolean DEBUG_CP_URL_CHECK;
     private static final int VERIFY_CLASSPATH_JARS;
+    private static final boolean ALLOW_SELF_SIGNED_CERTS;
 
     static {
         Properties props = System.getProperties();
@@ -106,6 +107,11 @@ public class URLClassPath {
         // JAR signature verification mode set by --enforce-jar-verification=N
         p = props.getProperty("jdk.jar.verification");
         VERIFY_CLASSPATH_JARS = (p != null) ? Integer.parseInt(p) : 0;
+
+        // If set, jarsigner is invoked without -strict so that self-signed
+        // certificates produce warnings instead of verification failures.
+        p = props.getProperty("jdk.jar.verification.allowSelfSignedCerts");
+        ALLOW_SELF_SIGNED_CERTS = "true".equals(p);
     }
 
     /*
@@ -122,6 +128,12 @@ public class URLClassPath {
      */
     private static volatile Method jarsignerRunMethod;
     private static volatile Constructor<?> jarsignerCtor;
+    private static volatile java.lang.reflect.Field jarsignerSelfSignedField;
+    private static volatile java.lang.reflect.Field jarsignerChainNotValidatedField;
+    private static volatile java.lang.reflect.Field jarsignerDisabledAlgField;
+    private static volatile java.lang.reflect.Field jarsignerHasExpiredCertField;
+    private static volatile java.lang.reflect.Field jarsignerHasExpiredTsaCertField;
+    private static volatile java.lang.reflect.Field jarsignerNotYetValidCertField;
     private static volatile boolean jarsignerAvailable = true;
 
     /**
@@ -150,6 +162,20 @@ public class URLClassPath {
             }
             jarsignerCtor = mainClass.getDeclaredConstructor();
             jarsignerRunMethod = mainClass.getMethod("run", String[].class);
+
+            // Cache fields used to diagnose self-signed cert warnings
+            jarsignerSelfSignedField = mainClass.getDeclaredField("signerSelfSigned");
+            jarsignerSelfSignedField.setAccessible(true);
+            jarsignerChainNotValidatedField = mainClass.getDeclaredField("chainNotValidated");
+            jarsignerChainNotValidatedField.setAccessible(true);
+            jarsignerDisabledAlgField = mainClass.getDeclaredField("disabledAlg");
+            jarsignerDisabledAlgField.setAccessible(true);
+            jarsignerHasExpiredCertField = mainClass.getDeclaredField("hasExpiredCert");
+            jarsignerHasExpiredCertField.setAccessible(true);
+            jarsignerHasExpiredTsaCertField = mainClass.getDeclaredField("hasExpiredTsaCert");
+            jarsignerHasExpiredTsaCertField.setAccessible(true);
+            jarsignerNotYetValidCertField = mainClass.getDeclaredField("notYetValidCert");
+            jarsignerNotYetValidCertField.setAccessible(true);
         } catch (ReflectiveOperationException e) {
             jarsignerAvailable = false;
         }
@@ -182,9 +208,20 @@ public class URLClassPath {
             int rc = (int) jarsignerRunMethod.invoke(instance,
                     (Object) new String[]{"-strict", "-verify", jarPath});
             if (rc != 0) {
-                throw new IOException(
-                        "JAR signature verification failed for " + jarPath
-                        + " (jarsigner exit code " + rc + ")");
+                // When --allow-self-signed-certs is set and the only failure
+                // is a self-signed signer certificate, treat as success.
+                // Exit code 4 covers: disabledAlg, chainNotValidated,
+                // hasExpiredCert, hasExpiredTsaCert, notYetValidCert,
+                // signerSelfSigned.  We inspect the instance fields to
+                // confirm self-signed was the sole cause.
+                if (ALLOW_SELF_SIGNED_CERTS && rc == 4
+                        && isSelfSignedOnly(instance)) {
+                    // self-signed cert tolerated — fall through to success
+                } else {
+                    throw new IOException(
+                            "JAR signature verification failed for " + jarPath
+                            + " (jarsigner exit code " + rc + ")");
+                }
             }
 
             // Record as verified so checkJar won't re-verify
@@ -199,6 +236,32 @@ public class URLClassPath {
                     "JAR signature verification failed for " + jarPath, cause);
         } catch (ReflectiveOperationException e) {
             jarsignerAvailable = false;
+        }
+    }
+
+    /**
+     * Returns {@code true} if the only reason jarsigner flagged exit code 4
+     * was a self-signed signer certificate (and the associated chain
+     * validation failure that always accompanies it).  Returns {@code false}
+     * if any other condition contributing to exit code 4 is also set
+     * (disabled algorithms, expired certs, not-yet-valid certs).
+     */
+    private static boolean isSelfSignedOnly(Object jarsignerInstance) {
+        try {
+            boolean selfSigned = jarsignerSelfSignedField.getBoolean(jarsignerInstance);
+            if (!selfSigned) return false;
+
+            // These other conditions also set exit code bit 4.
+            // If any of them are true, the failure is not solely self-signed.
+            int disabledAlg = jarsignerDisabledAlgField.getInt(jarsignerInstance);
+            boolean hasExpiredCert = jarsignerHasExpiredCertField.getBoolean(jarsignerInstance);
+            boolean hasExpiredTsaCert = jarsignerHasExpiredTsaCertField.getBoolean(jarsignerInstance);
+            boolean notYetValidCert = jarsignerNotYetValidCertField.getBoolean(jarsignerInstance);
+
+            return disabledAlg == 0 && !hasExpiredCert
+                    && !hasExpiredTsaCert && !notYetValidCert;
+        } catch (ReflectiveOperationException e) {
+            return false;  // fail closed
         }
     }
 
