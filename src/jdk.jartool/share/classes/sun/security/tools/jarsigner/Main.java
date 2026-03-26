@@ -194,6 +194,17 @@ public class Main {
     boolean strict = false;  // treat warnings as error
     boolean allowSelfSigned = false; // allow self-signed certificates
     boolean allowUnsignedEntry = false; // allow unsigned entries
+    boolean allowDisabledAlg = false; // allow disabled algorithms
+    boolean allowChainNotValidated = false; // allow unvalidated cert chains
+    boolean allowExpiredCert = false; // allow expired signer certs
+    boolean allowExpiredTsaCert = false; // allow expired TSA certs
+    boolean allowNotYetValidCert = false; // allow not-yet-valid certs
+    boolean allowBadKeyUsage = false; // allow bad key usage
+    boolean allowBadExtendedKeyUsage = false; // allow bad extended key usage
+    boolean allowBadNetscapeCertType = false; // allow bad Netscape cert type
+    boolean allowNotSignedByAlias = false; // allow not signed by alias
+    boolean allowAliasNotInStore = false; // allow alias not in store
+    boolean allowTsaChainNotValidated = false; // allow unvalidated TSA chains
     boolean revocationCheck = false; // Revocation check flag
 
     // read zip entry raw bytes
@@ -345,20 +356,26 @@ public class Main {
             if (signerSelfSigned && !allowSelfSigned) {
                 exitCode |= 4;
             }
-            if (disabledAlg != 0 || chainNotValidated || hasExpiredCert
-                    || hasExpiredTsaCert || notYetValidCert) {
+            if ((disabledAlg != 0 && !allowDisabledAlg)
+                    || (chainNotValidated && !allowChainNotValidated)
+                    || (hasExpiredCert && !allowExpiredCert)
+                    || (hasExpiredTsaCert && !allowExpiredTsaCert)
+                    || (notYetValidCert && !allowNotYetValidCert)) {
                 exitCode |= 4;
             }
-            if (badKeyUsage || badExtendedKeyUsage || badNetscapeCertType) {
+            if ((badKeyUsage && !allowBadKeyUsage)
+                    || (badExtendedKeyUsage && !allowBadExtendedKeyUsage)
+                    || (badNetscapeCertType && !allowBadNetscapeCertType)) {
                 exitCode |= 8;
             }
             if (hasUnsignedEntry && !allowUnsignedEntry) {
                 exitCode |= 16;
             }
-            if (notSignedByAlias || aliasNotInStore) {
+            if ((notSignedByAlias && !allowNotSignedByAlias)
+                    || (aliasNotInStore && !allowAliasNotInStore)) {
                 exitCode |= 32;
             }
-            if (tsaChainNotValidated) {
+            if (tsaChainNotValidated && !allowTsaChainNotValidated) {
                 exitCode |= 64;
             }
             return exitCode;
@@ -523,6 +540,28 @@ public class Main {
                 allowSelfSigned = true;
             } else if (collator.compare(flags, "--allow-unsigned-entries") ==0) {
                 allowUnsignedEntry = true;
+            } else if (collator.compare(flags, "--allow-disabled-alg") ==0) {
+                allowDisabledAlg = true;
+            } else if (collator.compare(flags, "--allow-chain-not-validated") ==0) {
+                allowChainNotValidated = true;
+            } else if (collator.compare(flags, "--allow-expired-cert") ==0) {
+                allowExpiredCert = true;
+            } else if (collator.compare(flags, "--allow-expired-tsa-cert") ==0) {
+                allowExpiredTsaCert = true;
+            } else if (collator.compare(flags, "--allow-not-yet-valid-cert") ==0) {
+                allowNotYetValidCert = true;
+            } else if (collator.compare(flags, "--allow-bad-key-usage") ==0) {
+                allowBadKeyUsage = true;
+            } else if (collator.compare(flags, "--allow-bad-extended-key-usage") ==0) {
+                allowBadExtendedKeyUsage = true;
+            } else if (collator.compare(flags, "--allow-bad-netscape-cert-type") ==0) {
+                allowBadNetscapeCertType = true;
+            } else if (collator.compare(flags, "--allow-not-signed-by-alias") ==0) {
+                allowNotSignedByAlias = true;
+            } else if (collator.compare(flags, "--allow-alias-not-in-store") ==0) {
+                allowAliasNotInStore = true;
+            } else if (collator.compare(flags, "--allow-tsa-chain-not-validated") ==0) {
+                allowTsaChainNotValidated = true;
             } else if (collator.compare(flags, "-?") == 0 ||
                        collator.compare(flags, "-h") == 0 ||
                        collator.compare(flags, "--help") == 0 ||

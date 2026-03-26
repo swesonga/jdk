@@ -1263,6 +1263,28 @@ ParseArguments(int *pargc, char ***pargv,
             AddOption("-Djdk.jar.verification.allowSelfSignedCerts=true", NULL);
         } else if (JLI_StrCmp(arg, "--allow-unsigned-entries") == 0) {
             AddOption("-Djdk.jar.verification.allowUnsignedEntries=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-disabled-alg") == 0) {
+            AddOption("-Djdk.jar.verification.allowDisabledAlg=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-chain-not-validated") == 0) {
+            AddOption("-Djdk.jar.verification.allowChainNotValidated=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-expired-cert") == 0) {
+            AddOption("-Djdk.jar.verification.allowExpiredCert=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-expired-tsa-cert") == 0) {
+            AddOption("-Djdk.jar.verification.allowExpiredTsaCert=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-not-yet-valid-cert") == 0) {
+            AddOption("-Djdk.jar.verification.allowNotYetValidCert=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-bad-key-usage") == 0) {
+            AddOption("-Djdk.jar.verification.allowBadKeyUsage=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-bad-extended-key-usage") == 0) {
+            AddOption("-Djdk.jar.verification.allowBadExtendedKeyUsage=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-bad-netscape-cert-type") == 0) {
+            AddOption("-Djdk.jar.verification.allowBadNetscapeCertType=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-not-signed-by-alias") == 0) {
+            AddOption("-Djdk.jar.verification.allowNotSignedByAlias=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-alias-not-in-store") == 0) {
+            AddOption("-Djdk.jar.verification.allowAliasNotInStore=true", NULL);
+        } else if (JLI_StrCmp(arg, "--allow-tsa-chain-not-validated") == 0) {
+            AddOption("-Djdk.jar.verification.allowTsaChainNotValidated=true", NULL);
         } else if (JLI_StrCmp(arg, "--describe-module") == 0 ||
                    JLI_StrCCmp(arg, "--describe-module=") == 0 ||
                    JLI_StrCmp(arg, "-d") == 0) {
