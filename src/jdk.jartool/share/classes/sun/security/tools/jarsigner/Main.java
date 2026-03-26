@@ -193,6 +193,7 @@ public class Main {
     boolean externalSF = true; // leave the .SF out of the PKCS7 block
     boolean strict = false;  // treat warnings as error
     boolean allowSelfSigned = false; // allow self-signed certificates
+    boolean allowUnsignedEntry = false; // allow unsigned entries
     boolean revocationCheck = false; // Revocation check flag
 
     // read zip entry raw bytes
@@ -351,7 +352,7 @@ public class Main {
             if (badKeyUsage || badExtendedKeyUsage || badNetscapeCertType) {
                 exitCode |= 8;
             }
-            if (hasUnsignedEntry) {
+            if (hasUnsignedEntry && !allowUnsignedEntry) {
                 exitCode |= 16;
             }
             if (notSignedByAlias || aliasNotInStore) {
@@ -520,6 +521,8 @@ public class Main {
                 strict = true;
             } else if (collator.compare(flags, "--allow-self-signed-certs") ==0) {
                 allowSelfSigned = true;
+            } else if (collator.compare(flags, "--allow-unsigned-entries") ==0) {
+                allowUnsignedEntry = true;
             } else if (collator.compare(flags, "-?") == 0 ||
                        collator.compare(flags, "-h") == 0 ||
                        collator.compare(flags, "--help") == 0 ||
