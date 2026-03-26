@@ -85,6 +85,7 @@ public class URLClassPath {
     private static final boolean DEBUG_CP_URL_CHECK;
     private static final int VERIFY_CLASSPATH_JARS;
     private static final boolean ALLOW_SELF_SIGNED_CERTS;
+    private static final boolean ALLOW_UNSIGNED_ENTRIES;
 
     static {
         Properties props = System.getProperties();
@@ -112,6 +113,11 @@ public class URLClassPath {
         // certificates produce warnings instead of verification failures.
         p = props.getProperty("jdk.jar.verification.allowSelfSignedCerts");
         ALLOW_SELF_SIGNED_CERTS = "true".equals(p);
+
+        // If set, jarsigner is invoked with --allow-unsigned-entries so that
+        // JARs containing unsigned entries do not cause verification failures.
+        p = props.getProperty("jdk.jar.verification.allowUnsignedEntries");
+        ALLOW_UNSIGNED_ENTRIES = "true".equals(p);
     }
 
     /*
@@ -185,10 +191,17 @@ public class URLClassPath {
             if (!jarsignerAvailable) return;
 
             Object instance = jarsignerCtor.newInstance();
-            String[] args = ALLOW_SELF_SIGNED_CERTS
-                    ? new String[]{"-strict", "--allow-self-signed-certs",
-                                   "-verify", jarPath}
-                    : new String[]{"-strict", "-verify", jarPath};
+            List<String> argList = new ArrayList<>();
+            argList.add("-strict");
+            if (ALLOW_SELF_SIGNED_CERTS) {
+                argList.add("--allow-self-signed-certs");
+            }
+            if (ALLOW_UNSIGNED_ENTRIES) {
+                argList.add("--allow-unsigned-entries");
+            }
+            argList.add("-verify");
+            argList.add(jarPath);
+            String[] args = argList.toArray(new String[0]);
             int rc = (int) jarsignerRunMethod.invoke(instance, (Object) args);
             if (rc != 0) {
                 throw new IOException(
