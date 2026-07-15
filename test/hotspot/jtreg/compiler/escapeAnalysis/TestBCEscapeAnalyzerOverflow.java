@@ -32,7 +32,7 @@
  *
  * @requires vm.compiler2.enabled
  *
- * @run main/othervm -Xcomp -XX:-TieredCompilation
+ * @run main/othervm -Xss2M -Xcomp -XX:-TieredCompilation
  *      compiler.escapeAnalysis.TestBCEscapeAnalyzerOverflow
  */
 
