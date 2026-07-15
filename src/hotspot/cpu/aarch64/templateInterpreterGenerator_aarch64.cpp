@@ -903,8 +903,7 @@ void TemplateInterpreterGenerator::generate_fixed_frame(bool native_call) {
     __ lsr(rscratch1, rscratch1, 1);
 
     // compute number of bytes required and load the target SP into rscratch2
-    __ lsl(rscratch1, rscratch1, 4);
-    __ subs(rscratch2, sp, rscratch1);
+    __ subs(rscratch2, sp, rscratch1, ext::uxtw, 4);
     __ csel(rscratch2, zr, rscratch2, Assembler::LO);
 
     // round both down to the nearest page
