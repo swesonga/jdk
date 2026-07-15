@@ -893,6 +893,41 @@ void TemplateInterpreterGenerator::generate_fixed_frame(bool native_call) {
   __ ldr(r10, Address(r10, in_bytes(Klass::java_mirror_offset())));
   __ resolve_oop_handle(r10, rscratch1, rscratch2);
   if (! native_call) {
+#if defined(_WINDOWS)
+    // Ensure that each page before the final page is touched in order
+    // as required by Windows.
+    const int page_size = (int)os::vm_page_size();
+    const int page_size_mask = -page_size;
+
+    __ ldrh(rscratch1, Address(r5_const_method, ConstMethod::max_stack_offset()));
+    __ add(rscratch1, rscratch1, MAX2(3, Method::extra_stack_entries()));
+
+    // load the number of 16-byte slots required into rscratch1
+    __ add(rscratch1, rscratch1, 1);
+    __ lsr(rscratch1, rscratch1, 1);
+
+    // compute number of bytes required and load the target SP into rscratch2
+    __ lsl(rscratch1, rscratch1, 4);
+    __ subs(rscratch2, sp, rscratch1);
+    __ csel(rscratch2, zr, rscratch2, Assembler::LO);
+
+    // round both down to the nearest page
+    __ mov(rscratch1, page_size_mask);
+    __ andr(rscratch2, rscratch1, rscratch2);
+    __ andr(rscratch1, rscratch1, sp);
+
+    Label stack_check_done;
+    __ cmp(rscratch1, rscratch2);
+    __ br(Assembler::EQ, stack_check_done);
+
+    Label stack_check;
+    __ bind(stack_check);
+    __ sub(rscratch1, rscratch1, page_size);
+    __ ldr(zr, Address(rscratch2));
+    __ cmp(rscratch1, rscratch2);
+    __ br(Assembler::NE, stack_check);
+    __ bind(stack_check_done);
+#endif
     __ ldrh(rscratch1, Address(r5_const_method, ConstMethod::max_stack_offset()));
     __ add(rscratch1, rscratch1, MAX2(3, Method::extra_stack_entries()));
     __ sub(rscratch1, sp, rscratch1, ext::uxtw, 3);
