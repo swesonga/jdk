@@ -24,40 +24,24 @@
 
 #include "asm/macroAssembler.hpp"
 
-void chkstk(MacroAssembler* masm, Register temp1, Register temp2, Register temp3) {
-  const int page_size = (int)os::vm_page_size();
-  const int page_size_mask = -page_size;
-
-  // compute number of bytes required and load the target SP into temp2
-  masm->subs(temp2, sp, temp1, ext::uxtw, 4);
-  masm->csel(temp2, zr, temp2, Assembler::LO);
-
-  // round both down to the nearest page
-  masm->mov(temp3, page_size_mask);
-  masm->mov(temp1, sp);
-  masm->andr(temp1, temp1, temp3);
-  masm->andr(temp2, temp2, temp3);
-
-  Label stack_check_done;
-  masm->cmp(temp1, temp2);
-  masm->br(Assembler::EQ, stack_check_done);
-
-  Label stack_check;
-  masm->bind(stack_check);
-  masm->sub(temp1, temp1, page_size);
-  masm->ldr(zr, Address(temp1));
-  masm->cmp(temp1, temp2);
-  masm->br(Assembler::NE, stack_check);
-  masm->bind(stack_check_done);
-}
+extern "C" void __chkstk();
 
 void MacroAssembler::pd_extend_stack_guard_page_for_method_max_stack(Register const_method, Register temp1, Register temp2, Register temp3) {
+  stp(r15, lr, Address(pre(sp, -2 * wordSize)));
   ldrh(temp1, Address(const_method, ConstMethod::max_stack_offset()));
   add(temp1, temp1, MAX2(3, Method::extra_stack_entries()));
 
-  // load the number of 16-byte slots required into temp1
+  // load the number of 16-byte slots required into r15
   add(temp1, temp1, 1);
-  lsr(temp1, temp1, 1);
+  lsr(r15, temp1, 1);
 
-  chkstk(this, temp1, temp2, temp3);
+  // load the number of 16-byte slots required into r15
+  mov(temp1, r16);
+  mov(temp2, r17);
+  mov(temp3, ExternalAddress(CAST_FROM_FN_PTR(address, __chkstk)));
+
+  blr(temp3);
+  ldp(r15, lr, Address(pre(sp, -2 * wordSize)));
+  mov(r16, temp1);
+  mov(r17, temp2);
 }
