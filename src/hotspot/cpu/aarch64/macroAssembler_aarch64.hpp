@@ -1873,6 +1873,8 @@ public:
   SVE_DESTRUCTIVE_TERNARY_UNPRED_INS(sve_eor3);
 
 #undef SVE_DESTRUCTIVE_TERNARY_UNPRED_INS
+
+  void pd_extend_stack(Register num_words, Register temp1, Register temp2);
 };
 
 #ifdef ASSERT

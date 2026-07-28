@@ -23,6 +23,9 @@
  *
  */
 
-// nothing required here
+#include "asm/macroAssembler.hpp"
 
+void MacroAssembler::pd_extend_stack(Register num_words, Register temp1, Register temp2) {
+    // nothing required here
+}
 

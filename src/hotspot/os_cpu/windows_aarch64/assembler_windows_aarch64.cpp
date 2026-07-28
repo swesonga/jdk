@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Microsoft Corporation. All rights reserved.
+ * Copyright (c) 2026, Microsoft Corporation. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,4 +22,36 @@
  *
  */
 
-// nothing required here
+#include "asm/macroAssembler.hpp"
+
+void MacroAssembler::pd_extend_stack(Register num_words, Register temp1, Register temp2) {
+  const int page_size = (int)os::vm_page_size();
+  const int page_size_mask = -page_size;
+
+  // load the number of 16-byte slots required into temp1
+  add(temp1, num_words, 1);
+  lsr(temp1, temp1, 1);
+
+  // compute number of bytes required and load the target SP into temp2
+  subs(temp2, sp, temp1, ext::uxtw, 4);
+  csel(temp2, zr, temp2, Assembler::LO);
+
+  // round both down to the nearest page
+  mov(temp1, page_size_mask);
+  andr(temp2, temp1, temp2);
+
+  mov(num_words, sp);
+  andr(temp1, temp1, num_words);
+
+  Label stack_check_done;
+  cmp(temp1, temp2);
+  br(Assembler::EQ, stack_check_done);
+
+  Label stack_check;
+  bind(stack_check);
+  sub(temp1, temp1, page_size);
+  ldr(zr, Address(temp1));
+  cmp(temp1, temp2);
+  br(Assembler::NE, stack_check);
+  bind(stack_check_done);
+}
