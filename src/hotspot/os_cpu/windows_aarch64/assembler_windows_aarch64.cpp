@@ -24,9 +24,12 @@
 
 #include "asm/macroAssembler.hpp"
 
-void MacroAssembler::pd_extend_stack(Register num_words, Register temp1, Register temp2) {
+void MacroAssembler::pd_extend_stack(Register const_method, Register num_words, Register temp1, Register temp2) {
   const int page_size = (int)os::vm_page_size();
   const int page_size_mask = -page_size;
+
+  ldrh(temp1, Address(const_method, ConstMethod::max_stack_offset()));
+  add(num_words, temp1, MAX2(3, Method::extra_stack_entries()));
 
   // load the number of 16-byte slots required into temp1
   add(temp1, num_words, 1);

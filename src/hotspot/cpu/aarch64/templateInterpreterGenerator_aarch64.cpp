@@ -893,9 +893,7 @@ void TemplateInterpreterGenerator::generate_fixed_frame(bool native_call) {
     // all initially accessed in the order required by the platform.
     // use r10 as a scratch register before it is loaded with its
     // final value after this block is done extending the usable stack.
-    __ ldrh(rscratch1, Address(r5_const_method, ConstMethod::max_stack_offset()));
-    __ add(r10, rscratch1, MAX2(3, Method::extra_stack_entries()));
-    __ pd_extend_stack(r10, rscratch1, rscratch2);
+    __ pd_extend_stack(r5_const_method, r10, rscratch1, rscratch2);
   }
 
   // Get mirror. Resolve ConstantPool* -> InstanceKlass* -> Java mirror.
