@@ -24,10 +24,34 @@
 
 #include "asm/macroAssembler.hpp"
 
-void MacroAssembler::pd_extend_stack_guard_page_for_method_max_stack(Register const_method, Register temp1, Register temp2, Register temp3) {
+void chkstk(MacroAssembler* masm, Register temp1, Register temp2, Register temp3) {
   const int page_size = (int)os::vm_page_size();
   const int page_size_mask = -page_size;
 
+  // compute number of bytes required and load the target SP into temp2
+  masm->subs(temp2, sp, temp1, ext::uxtw, 4);
+  masm->csel(temp2, zr, temp2, Assembler::LO);
+
+  // round both down to the nearest page
+  masm->mov(temp3, page_size_mask);
+  masm->mov(temp1, sp);
+  masm->andr(temp1, temp1, temp3);
+  masm->andr(temp2, temp2, temp3);
+
+  Label stack_check_done;
+  masm->cmp(temp1, temp2);
+  masm->br(Assembler::EQ, stack_check_done);
+
+  Label stack_check;
+  masm->bind(stack_check);
+  masm->sub(temp1, temp1, page_size);
+  masm->ldr(zr, Address(temp1));
+  masm->cmp(temp1, temp2);
+  masm->br(Assembler::NE, stack_check);
+  masm->bind(stack_check_done);
+}
+
+void MacroAssembler::pd_extend_stack_guard_page_for_method_max_stack(Register const_method, Register temp1, Register temp2, Register temp3) {
   ldrh(temp1, Address(const_method, ConstMethod::max_stack_offset()));
   add(temp1, temp1, MAX2(3, Method::extra_stack_entries()));
 
@@ -35,25 +59,5 @@ void MacroAssembler::pd_extend_stack_guard_page_for_method_max_stack(Register co
   add(temp1, temp1, 1);
   lsr(temp1, temp1, 1);
 
-  // compute number of bytes required and load the target SP into temp2
-  subs(temp2, sp, temp1, ext::uxtw, 4);
-  csel(temp2, zr, temp2, Assembler::LO);
-
-  // round both down to the nearest page
-  mov(temp3, page_size_mask);
-  mov(temp1, sp);
-  andr(temp1, temp1, temp3);
-  andr(temp2, temp2, temp3);
-
-  Label stack_check_done;
-  cmp(temp1, temp2);
-  br(Assembler::EQ, stack_check_done);
-
-  Label stack_check;
-  bind(stack_check);
-  sub(temp1, temp1, page_size);
-  ldr(zr, Address(temp1));
-  cmp(temp1, temp2);
-  br(Assembler::NE, stack_check);
-  bind(stack_check_done);
+  chkstk(this, temp1, temp2, temp3);
 }
