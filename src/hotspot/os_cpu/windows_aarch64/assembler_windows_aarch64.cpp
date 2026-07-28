@@ -26,7 +26,7 @@
 
 extern "C" void __chkstk();
 
-void MacroAssembler::pd_extend_stack_guard_page_for_method_max_stack(Register const_method, Register temp1, Register temp2, Register temp3) {
+void MacroAssembler::pd_extend_stack_guard_page_for_method_max_stack(Register const_method, Register temp1, Register temp2) {
   stp(r15, lr, Address(pre(sp, -2 * wordSize)));
   ldrh(temp1, Address(const_method, ConstMethod::max_stack_offset()));
   add(temp1, temp1, MAX2(3, Method::extra_stack_entries()));
@@ -35,13 +35,13 @@ void MacroAssembler::pd_extend_stack_guard_page_for_method_max_stack(Register co
   add(temp1, temp1, 1);
   lsr(r15, temp1, 1);
 
-  // load the number of 16-byte slots required into r15
   mov(temp1, r16);
   mov(temp2, r17);
-  mov(temp3, ExternalAddress(CAST_FROM_FN_PTR(address, __chkstk)));
 
-  blr(temp3);
-  ldp(r15, lr, Address(pre(sp, -2 * wordSize)));
+  mov(lr, ExternalAddress(CAST_FROM_FN_PTR(address, __chkstk)));
+  blr(lr);
+
   mov(r16, temp1);
   mov(r17, temp2);
+  ldp(r15, lr, Address(post(sp, 2 * wordSize)));
 }
