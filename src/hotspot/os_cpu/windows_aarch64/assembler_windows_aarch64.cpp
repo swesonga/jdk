@@ -24,9 +24,18 @@
 
 #include "asm/macroAssembler.hpp"
 
+// __chkstk is an internal CRT function that probes the stack page by page
+// to ensure that the guard page moves to the desired stack location. On
+// entry, r15 contains the number of 16-byte slots to allocate.
+// It clobbers r16 and r17 but does not modify sp or any other registers.
 extern "C" void __chkstk();
 
 void MacroAssembler::pd_extend_stack_guard_page_for_method_max_stack(Register const_method, Register temp1, Register temp2) {
+  assert_different_registers(const_method, temp1, temp2);
+  assert_different_registers(r15, temp1, temp2);
+  assert_different_registers(r16, temp1, temp2);
+  assert_different_registers(r17, temp1, temp2);
+
   stp(r15, lr, Address(pre(sp, -2 * wordSize)));
   ldrh(temp1, Address(const_method, ConstMethod::max_stack_offset()));
   add(temp1, temp1, MAX2(3, Method::extra_stack_entries()));
