@@ -1654,11 +1654,11 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
   // need to load the const method first
   __ ldr(r3, constMethod);
   __ load_unsigned_short(r2, size_of_parameters);
+  __ load_unsigned_short(rscratch1, max_stack);
 
   // r2: size of parameters
 
   __ load_unsigned_short(r3, size_of_locals); // get size of locals in words
-  __ load_unsigned_short(rscratch1, max_stack);
   __ add(r3, r3, rscratch1);
   __ sub(r3, r3, r2); // r3 = no. of additional locals + max expression stack size
 
