@@ -1659,15 +1659,15 @@ address TemplateInterpreterGenerator::generate_normal_entry(bool synchronized) {
   // r2: size of parameters
 
   __ load_unsigned_short(r3, size_of_locals); // get size of locals in words
-  __ add(r3, r3, rscratch1);
-  __ sub(r3, r3, r2); // r3 = no. of additional locals + max expression stack size
+  __ sub(r3, r3, r2); // r3 = no. of additional locals
+  __ stp(r3, rscratch1, Address(__ pre(sp, -2 * wordSize)));
+  __ add(r3, r3, rscratch1);  // r3 = no. of additional locals + max expression stack size
 
   // see if we've got enough room on the stack for locals plus overhead.
   generate_stack_overflow_check();
 
   // restore r3
-  __ load_unsigned_short(rscratch1, max_stack);
-  __ sub(r3, r3, rscratch1);
+  __ ldp(r3, rscratch1, Address(__ post(sp, 2 * wordSize)));
 
   // compute beginning of parameters (rlocals)
   __ add(rlocals, esp, r2, ext::uxtx, 3);
