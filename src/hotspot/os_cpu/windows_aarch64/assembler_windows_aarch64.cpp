@@ -31,7 +31,7 @@
 extern "C" void __chkstk();
 
 void MacroAssembler::pd_extend_stack(Register const_method, Register temp) {
-  assert_different_registers(const_method, temp, temp2);
+  assert_different_registers(const_method, temp);
 
   push(RegSet::of(r0, lr), sp);
   ldrh(temp, Address(const_method, ConstMethod::max_stack_offset()));
