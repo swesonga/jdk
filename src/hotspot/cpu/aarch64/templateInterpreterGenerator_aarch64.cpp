@@ -1183,6 +1183,13 @@ void TemplateInterpreterGenerator::bang_stack_shadow_pages(bool native_call) {
     Register lowest_probing_addr = r3;
     __ sub(lowest_probing_addr, prospective_sp, shadow_zone_size);
 
+    // Align the pointer in `probing_addr` so we have an integral number of pages
+    // between `probing_addr` and `lowest_probing_addr`.
+    __ sub(probing_addr, probing_addr, lowest_probing_addr);  // probing_addr = start - end
+    __ add(probing_addr, probing_addr, page_size - 1);        // probing_addr += page_size-1
+    __ andr(probing_addr, probing_addr, -page_size);          // probing_addr &= -page_size
+    __ add(probing_addr, lowest_probing_addr, probing_addr);  // probing_addr = end + probing_addr
+
     __ bind(L_loop);
     __ sub(probing_addr, probing_addr, page_size);
     __ str(zr, Address(probing_addr));
